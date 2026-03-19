@@ -22,17 +22,19 @@ const GLASS = {
    TÜM diziler strictly increasing — duplicate yok.
    ─────────────────────────────────────────────────────────────────────────── */
 const R = [
-  [0.001, 0.02,  0.22, 0.25],   // Sahne 0: baştan görünür
-  [0.22,  0.25,  0.47, 0.50],   // Sahne 1
-  [0.47,  0.50,  0.72, 0.75],   // Sahne 2
-  [0.72,  0.75,  1.99, 2.00],   // Sahne 3: çıkışsız (1.99 ulaşılamaz)
+  [0.00, 0.03, 0.22, 0.25],   // Sahne 0: baştan görünür, 0.22'de çıkmaya başlar
+  [0.22, 0.25, 0.47, 0.50],   // Sahne 1
+  [0.47, 0.50, 0.72, 0.75],   // Sahne 2
+  [0.72, 0.75, 0.98, 0.99],   // Sahne 3: çıkışta opacity 1 kalır (aşağıda output'ta)
 ];
 
 /* ── Sol metin bileşeni ─────────────────────────────────────────────────── */
 function NarrationPanel({ index, progress, children }) {
   const [a, b, c, d] = R[index];
-  const opacity = useTransform(progress, [a, b, c, d], [index === 0 ? 1 : 0, 1, 1, 0]);
-  const y = useTransform(progress, [a, b, c, d], [index === 0 ? 0 : 36, 0, 0, -36]);
+  const isFirst = index === 0;
+  const isLast = index === 3;
+  const opacity = useTransform(progress, [a, b, c, d], [isFirst ? 1 : 0, 1, 1, isLast ? 1 : 0]);
+  const y = useTransform(progress, [a, b, c, d], [isFirst ? 0 : 36, 0, 0, isLast ? 0 : -36]);
 
   return (
     <motion.div style={{
@@ -49,10 +51,12 @@ function NarrationPanel({ index, progress, children }) {
 /* ── Sağ mock bileşeni (3D geçiş) ──────────────────────────────────────── */
 function ScenePanel({ index, progress, children }) {
   const [a, b, c, d] = R[index];
-  const opacity = useTransform(progress, [a, b, c, d], [index === 0 ? 1 : 0, 1, 1, 0]);
-  const x = useTransform(progress, [a, b, c, d], [index === 0 ? 0 : 80, 0, 0, -80]);
-  const rY = useTransform(progress, [a, b, c, d], [index === 0 ? 0 : 12, 0, 0, -12]);
-  const sc = useTransform(progress, [a, b, c, d], [index === 0 ? 1 : 0.92, 1, 1, 0.92]);
+  const isFirst = index === 0;
+  const isLast = index === 3;
+  const opacity = useTransform(progress, [a, b, c, d], [isFirst ? 1 : 0, 1, 1, isLast ? 1 : 0]);
+  const x = useTransform(progress, [a, b, c, d], [isFirst ? 0 : 80, 0, 0, isLast ? 0 : -80]);
+  const rY = useTransform(progress, [a, b, c, d], [isFirst ? 0 : 12, 0, 0, isLast ? 0 : -12]);
+  const sc = useTransform(progress, [a, b, c, d], [isFirst ? 1 : 0.92, 1, 1, isLast ? 1 : 0.92]);
 
   return (
     <motion.div style={{
