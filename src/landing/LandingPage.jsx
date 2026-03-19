@@ -33,10 +33,8 @@ export default function LandingPage() {
       <div style={{ overflowX: 'hidden' }}>
         <Stats />
       </div>
-      {/* InteractiveShowcase kendi 400vh section'ı — overflow yok, useScroll serbest */}
-      <div id="nasil">
-        <InteractiveShowcase />
-      </div>
+      {/* InteractiveShowcase: 400vh section, id="nasil" kendi içinde, wrapper yok */}
+      <InteractiveShowcase />
       <div id="musteriler" style={{ overflowX: 'hidden' }}>
         <Testimonials />
       </div>
