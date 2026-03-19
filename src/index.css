@@ -95,57 +95,19 @@ select option {
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:rgba(232,145,74,.18); border-radius:2px; }
 
-/* ── LANDING PAGE ANIMATIONS ──────────────────────────────────────────────── */
-@keyframes landing-orb-drift {
-  0%,100% { transform: translate(0,0) scale(1); }
-  25% { transform: translate(60px,-40px) scale(1.08); }
-  50% { transform: translate(-30px,50px) scale(0.95); }
-  75% { transform: translate(40px,20px) scale(1.03); }
-}
-@keyframes landing-orb-drift-2 {
-  0%,100% { transform: translate(0,0) scale(1); }
-  33% { transform: translate(-50px,30px) scale(1.05); }
-  66% { transform: translate(30px,-45px) scale(0.97); }
-}
-@keyframes landing-orb-drift-3 {
-  0%,100% { transform: translate(0,0) scale(1); }
-  40% { transform: translate(35px,40px) scale(1.1); }
-  70% { transform: translate(-40px,-20px) scale(0.92); }
-}
-@keyframes landing-breathe {
-  0%,100% { box-shadow: 0 0 20px rgba(232,145,74,0.3), 0 0 60px rgba(232,145,74,0.1); }
-  50% { box-shadow: 0 0 30px rgba(232,145,74,0.5), 0 0 80px rgba(232,145,74,0.2); }
-}
-@keyframes landing-glow-line {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(200%); }
-}
-@keyframes landing-logo-scroll {
-  0% { transform: translateX(0); }
+/* ── LANDING ───────────────────────────────────────────────────────────────── */
+@keyframes landing-marquee {
+  0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
-@keyframes landing-dash-flow {
-  0% { stroke-dashoffset: 20; }
-  100% { stroke-dashoffset: 0; }
-}
-@keyframes landing-counter {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes landing-testimonial-slide {
-  0%,100% { opacity: 1; transform: translateX(0); }
-  33% { opacity: 0.7; transform: translateX(-5px); }
-}
-@keyframes landing-shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
 
-/* ── ANIMATED BORDER ROTATION ──────────────────────────────────────────────── */
-@keyframes landing-border-rotate {
-  from { transform: translate(-50%,-50%) rotate(0deg); }
-  to   { transform: translate(-50%,-50%) rotate(360deg); }
-}
-
-/* Landing smooth scroll */
 html { scroll-behavior: smooth; }
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -29,6 +29,12 @@ export const C = {
 export const F  = "'Montserrat', sans-serif";
 export const FB = "'Inter', sans-serif";
 
+// ── LANDING DESIGN TOKENS ────────────────────────────────────────────────────
+export const GLASS = {
+  border: '1px solid rgba(255,255,255,0.06)',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+};
+
 // ── HELPERS ──────────────────────────────────────────────────────────────────
 export const uid  = () => Math.random().toString(36).slice(2,9);
 export const r4   = n  => Math.round(n*10000)/10000;

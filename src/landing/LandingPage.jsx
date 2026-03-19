@@ -4,7 +4,6 @@ import HeroSection from './HeroSection.jsx';
 import TrustedBy from './TrustedBy.jsx';
 import FeaturesBento from './FeaturesBento.jsx';
 import InteractiveShowcase from './InteractiveShowcase.jsx';
-import Stats from './Stats.jsx';
 import Testimonials from './Testimonials.jsx';
 import FinalCTA from './FinalCTA.jsx';
 import Footer from './Footer.jsx';
@@ -19,19 +18,20 @@ export default function LandingPage() {
       overflowX: 'hidden',
     }}>
       <Navbar />
-      <HeroSection />
-      <TrustedBy />
-      <div id="ozellikler">
-        <FeaturesBento />
-      </div>
-      <Stats />
-      <div id="nasil">
-        <InteractiveShowcase />
-      </div>
-      <div id="musteriler">
-        <Testimonials />
-      </div>
-      <FinalCTA />
+      <main>
+        <HeroSection />
+        <TrustedBy />
+        <div id="ozellikler">
+          <FeaturesBento />
+        </div>
+        <div id="nasil">
+          <InteractiveShowcase />
+        </div>
+        <div id="musteriler">
+          <Testimonials />
+        </div>
+        <FinalCTA />
+      </main>
       <Footer />
     </div>
   );
