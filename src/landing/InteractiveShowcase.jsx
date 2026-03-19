@@ -1,224 +1,338 @@
-import { useState, useRef } from 'react';
+import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import {
-  ShoppingCart, ClipboardCheck, Factory, Package,
-  Truck, CheckCircle
+  ClipboardList, AlertTriangle, Factory, Truck, CheckCircle
 } from 'lucide-react';
 import { C, F, FB } from '../config/constants.js';
 
+/* ══════════════════════════════════════════════════════════════════════════════
+   SİPARİŞ HİKAYESİ: Karaca Mobilya — SP-2026-041
+   Tek sipariş, 4 sahne, uçtan uca ürün akışı.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
 const GLASS = {
   border: '1px solid rgba(255,255,255,0.06)',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
 };
 
-const steps = [
-  { icon: ShoppingCart, title: 'Sipariş Alın', desc: 'Müşteri aradı, siparişi sisteme girin. Çoklu kalem, alt müşteri ve termin — hepsi tek formda.', color: C.cyan, detail: 'Sipariş girildiği an stok analizi otomatik çalışır. Stokta varsa direkt sevkiyata hazır; yoksa eksik malzeme listesi çıkar.' },
-  { icon: ClipboardCheck, title: 'Stok Kontrol', desc: 'Sistem her ham madde ve yarı mamülü kontrol eder, eksikleri hesaplar.', color: '#3E7BD4', detail: 'BOM reçetesi üzerinden rekürsif malzeme patlatma. Hangi depoda ne kadar var, neye ne kadar lazım — saniyeler içinde.' },
-  { icon: Factory, title: 'Üretime Gönder', desc: 'Tek tıkla toplu üretim emirleri. Aşamalar, süreler ve sorumlular otomatik atanır.', color: '#3DB88A', detail: 'Kanban tahtasında canlı aşama takibi, iş günlüğü, canlı zamanlayıcılar. Üretim hattınız artık şeffaf.' },
-  { icon: Package, title: 'Tedarik Et', desc: 'Eksik malzeme? Tedarikçiye sipariş, nakliye takibi, otomatik stok girişi.', color: C.gold, detail: 'Toplu, ürün bazlı veya sipariş bazlı 3 farklı görünümle tedarik sürecini komple izleyin.' },
-  { icon: Truck, title: 'Sevk Et', desc: 'Üretim bitti, sevkiyat emri oluşturun. Nakliye ve teslimat takibi dahil.', color: '#D46B2A', detail: 'Stok hareketleri otomatik güncellenir. İrsaliye numarası, fatura bilgisi, nakliyeci — hepsi kayıtta.' },
-  { icon: CheckCircle, title: 'Tamamla', desc: 'Sipariş teslim. Maliyet analizi ve kar/marj raporlarınız hazır.', color: '#3DB88A', detail: 'Siparişten teslimata her adım tek ekrandan izlenip raporlanabilir. "Bu sipariş bize ne kazandırdı?" sorusunun cevabı burada.' },
+/* ── Scroll Ranges ──────────────────────────────────────────────────────────
+   300vh section (400vh - 100vh sticky = 300vh scroll distance).
+   scrollYProgress 0→1 arası 4 sahne.
+   Her sahne: giriş %3, plato ~%19, çıkış %3 (son sahne çıkışsız).
+   TÜM diziler strictly increasing — duplicate yok.
+   ─────────────────────────────────────────────────────────────────────────── */
+const R = [
+  [0.001, 0.02,  0.22, 0.25],   // Sahne 0: baştan görünür
+  [0.22,  0.25,  0.47, 0.50],   // Sahne 1
+  [0.47,  0.50,  0.72, 0.75],   // Sahne 2
+  [0.72,  0.75,  1.99, 2.00],   // Sahne 3: çıkışsız (1.99 ulaşılamaz)
 ];
 
-/* ── Scroll-Linked SVG Path ── */
-function ScrollPath({ containerRef }) {
-  const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start 80%', 'end 20%'] });
-  const pathLen = useTransform(scrollYProgress, [0, 1], [0, 1]);
-  const glowOp = useTransform(scrollYProgress, [0, 0.5, 1], [0.15, 0.85, 1]);
+/* ── Sol metin bileşeni ─────────────────────────────────────────────────── */
+function NarrationPanel({ index, progress, children }) {
+  const [a, b, c, d] = R[index];
+  const opacity = useTransform(progress, [a, b, c, d], [index === 0 ? 1 : 0, 1, 1, 0]);
+  const y = useTransform(progress, [a, b, c, d], [index === 0 ? 0 : 36, 0, 0, -36]);
 
   return (
-    <svg style={{ position: 'absolute', left: 39, top: 0, width: 2, height: '100%', overflow: 'visible', zIndex: 0, pointerEvents: 'none' }}>
-      <defs>
-        <linearGradient id="goldFlow" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={C.cyan} />
-          <stop offset="50%" stopColor={C.gold} />
-          <stop offset="100%" stopColor={C.cyan} />
-        </linearGradient>
-        <filter id="pathGlow">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b" />
-          <feMerge><feMergeNode in="b" /><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-      </defs>
-      <motion.line x1="1" y1="0" x2="1" y2="100%" stroke="rgba(255,255,255,0.03)" strokeWidth="2" />
-      <motion.line
-        x1="1" y1="0" x2="1" y2="100%"
-        stroke="url(#goldFlow)" strokeWidth="2" filter="url(#pathGlow)"
-        style={{ pathLength: pathLen, opacity: glowOp }} strokeLinecap="round"
-      />
-      <motion.circle
-        cx="1" r="5" fill={C.gold} filter="url(#pathGlow)"
-        style={{
-          cy: useTransform(scrollYProgress, [0, 1], ['0%', '100%']),
-          opacity: useTransform(scrollYProgress, [0, 0.04, 0.96, 1], [0, 1, 1, 0]),
-        }}
-      />
-    </svg>
+    <motion.div style={{
+      position: 'absolute', inset: 0,
+      display: 'flex', flexDirection: 'column', justifyContent: 'center',
+      opacity, y,
+      willChange: 'transform, opacity',
+    }}>
+      {children}
+    </motion.div>
   );
 }
 
-export default function InteractiveShowcase() {
-  const [activeStep, setActiveStep] = useState(0);
-  const stepsRef = useRef(null);
+/* ── Sağ mock bileşeni (3D geçiş) ──────────────────────────────────────── */
+function ScenePanel({ index, progress, children }) {
+  const [a, b, c, d] = R[index];
+  const opacity = useTransform(progress, [a, b, c, d], [index === 0 ? 1 : 0, 1, 1, 0]);
+  const x = useTransform(progress, [a, b, c, d], [index === 0 ? 0 : 80, 0, 0, -80]);
+  const rY = useTransform(progress, [a, b, c, d], [index === 0 ? 0 : 12, 0, 0, -12]);
+  const sc = useTransform(progress, [a, b, c, d], [index === 0 ? 1 : 0.92, 1, 1, 0.92]);
 
   return (
-    <section style={{
-      padding: '160px 24px',
-      background: `linear-gradient(180deg, ${C.bg}, ${C.s1} 25%, ${C.s1} 75%, ${C.bg})`,
-      position: 'relative', isolation: 'isolate',
+    <motion.div style={{
+      position: 'absolute', inset: 0,
+      opacity, x, rotateY: rY, scale: sc,
+      transformOrigin: 'center center',
+      willChange: 'transform, opacity',
     }}>
-      {/* Ambient orb */}
-      <div style={{
-        position: 'absolute', width: 550, height: 550, borderRadius: '50%',
-        background: `radial-gradient(circle, ${C.cyan}0C, transparent 65%)`,
-        top: '18%', left: '58%', pointerEvents: 'none', mixBlendMode: 'color-dodge',
-        animation: 'landing-orb-drift-2 22s ease-in-out infinite',
-      }} />
+      {children}
+    </motion.div>
+  );
+}
 
-      <div style={{ maxWidth: 1140, margin: '0 auto', position: 'relative', zIndex: 1 }}>
-        {/* ── Header ── */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          style={{ textAlign: 'center', marginBottom: 88, perspective: '600px' }}
-        >
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            style={{ fontSize: 12, fontFamily: FB, color: C.cyan, letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 20 }}
-          >Nasıl Çalışır?</motion.p>
-          <h2 style={{ fontFamily: F, fontSize: 'clamp(30px, 4.5vw, 48px)', fontWeight: 900, color: C.text, letterSpacing: '-2px', lineHeight: 1.08 }}>
-            {['Siparişten', 'Teslimata,'].map((w, i) => (
-              <span key={i} style={{ display: 'inline-block', overflow: 'hidden', verticalAlign: 'top' }}>
-                <motion.span initial={{ y: '105%', rotateX: 45, opacity: 0 }} whileInView={{ y: '0%', rotateX: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.1 + i * 0.07, ease: [0.16, 1, 0.3, 1] }} style={{ display: 'inline-block', transformOrigin: 'bottom center' }}>{w}</motion.span>{'\u00A0'}
-              </span>
-            ))}
-            <br />
-            {['Kesintisiz', 'Akış'].map((w, i) => (
-              <span key={i} style={{ display: 'inline-block', overflow: 'hidden', verticalAlign: 'top' }}>
-                <motion.span initial={{ y: '105%', rotateX: 45, opacity: 0 }} whileInView={{ y: '0%', rotateX: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.3 + i * 0.07, ease: [0.16, 1, 0.3, 1] }} style={{ display: 'inline-block', transformOrigin: 'bottom center', backgroundImage: `linear-gradient(135deg, ${C.cyan}, ${C.gold})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{w}</motion.span>{i === 0 && '\u00A0'}
-              </span>
-            ))}
-          </h2>
-        </motion.div>
+/* ══════════════════════════════════════════════════════════════════════════════
+   4 SAHNE — Karaca Mobilya SP-2026-041
+   ══════════════════════════════════════════════════════════════════════════════ */
 
-        {/* ── Content grid ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: 56, alignItems: 'start' }}>
-          {/* Left: steps with SVG line */}
-          <div ref={stepsRef} style={{ display: 'flex', flexDirection: 'column', gap: 6, position: 'relative' }}>
-            <ScrollPath containerRef={stepsRef} />
-            {steps.map((s, i) => {
-              const Icon = s.icon;
-              const active = activeStep === i;
-              return (
-                <motion.div key={i}
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.07, duration: 0.5 }}
-                  onClick={() => setActiveStep(i)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 16,
-                    padding: '18px 20px', borderRadius: 16, cursor: 'pointer',
-                    background: active ? `${s.color}06` : 'transparent',
-                    border: active ? `1px solid ${s.color}18` : '1px solid transparent',
-                    transition: 'all 0.35s ease', position: 'relative', zIndex: 1,
-                  }}
-                >
-                  <motion.div
-                    whileHover={{ scale: 1.18 }}
-                    whileTap={{ scale: 0.82 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 12 }}
-                    style={{
-                      width: 42, height: 42, borderRadius: 13, flexShrink: 0,
-                      background: active ? `${s.color}10` : 'rgba(255,255,255,0.025)',
-                      ...GLASS,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
-                  >
-                    <Icon size={18} color={active ? s.color : C.muted} strokeWidth={1.8} />
-                  </motion.div>
-                  <div>
-                    <div style={{ fontFamily: F, fontSize: 14, fontWeight: 700, color: active ? C.text : C.sub, letterSpacing: '-0.5px', transition: 'color 0.3s' }}>{s.title}</div>
-                    <div style={{ fontFamily: FB, fontSize: 11.5, color: C.muted, lineHeight: 1.45, marginTop: 3 }}>{s.desc}</div>
-                  </div>
-                </motion.div>
-              );
-            })}
+/* ── Sahne 1: Sipariş Alındı ── */
+function Scene1() {
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <ClipboardList size={14} color={C.cyan} />
+          <span style={{ fontFamily: F, fontSize: 12, fontWeight: 700, color: C.text }}>Sipariş Detayı</span>
+        </div>
+        <span style={{ fontSize: 9, fontFamily: FB, fontWeight: 600, color: '#3DB88A', background: '#3DB88A15', padding: '3px 10px', borderRadius: 6 }}>Onaylandı</span>
+      </div>
+
+      {/* Sipariş kartı */}
+      <div style={{ background: 'rgba(255,255,255,0.02)', ...GLASS, borderRadius: 12, padding: '14px 16px', marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+          <span style={{ fontFamily: F, fontSize: 14, fontWeight: 800, color: C.cyan, letterSpacing: '-0.5px' }}>SP-2026-041</span>
+          <span style={{ fontSize: 9, fontFamily: FB, color: C.muted }}>📅 Termin: 12 Nisan 2026</span>
+        </div>
+        <div style={{ fontSize: 11, fontFamily: FB, color: C.text, marginBottom: 2 }}>Karaca Mobilya</div>
+        <div style={{ fontSize: 9.5, fontFamily: FB, color: C.muted }}>📍 Ankara Armada Şubesi · Bahar Koleksiyonu</div>
+      </div>
+
+      {/* Kalemler */}
+      <div style={{ fontSize: 9, fontFamily: FB, color: C.muted, marginBottom: 8, letterSpacing: '0.5px', textTransform: 'uppercase' }}>Sipariş Kalemleri</div>
+      {[
+        { ad: 'Atlas Sandalye', adet: 24, durum: 'Üretime Hazır', c: C.cyan },
+        { ad: 'Atlas Masa 140 cm', adet: 6, durum: 'Stok Yetersiz', c: C.gold },
+        { ad: 'Karşılama Bankosu 220 cm', adet: 1, durum: 'Özel Üretim', c: C.lav },
+      ].map((k, i) => (
+        <div key={i} style={{
+          display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', marginBottom: 4,
+          background: 'rgba(255,255,255,0.015)', borderRadius: 8,
+          borderLeft: `2px solid ${k.c}40`,
+        }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, fontFamily: FB, fontWeight: 600, color: C.text }}>{k.ad}</div>
+            <div style={{ fontSize: 9, fontFamily: FB, color: C.muted, marginTop: 1 }}>{k.adet} adet</div>
+          </div>
+          <span style={{ fontSize: 8, fontFamily: FB, fontWeight: 600, color: k.c, background: `${k.c}12`, padding: '2px 8px', borderRadius: 5 }}>{k.durum}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Sahne 2: Stok & Tedarik ── */
+function Scene2() {
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <AlertTriangle size={14} color="#DC3C3C" />
+          <span style={{ fontFamily: F, fontSize: 12, fontWeight: 700, color: C.text }}>Eksik Malzeme — SP-2026-041</span>
+        </div>
+        <span style={{ fontSize: 9, fontFamily: FB, fontWeight: 600, color: '#DC3C3C', background: '#DC3C3C15', padding: '3px 10px', borderRadius: 6 }}>4 Kalem Eksik</span>
+      </div>
+
+      {[
+        { ad: '40×20 Profil HR', stok: '12 boy', gerek: '48 boy', eksik: '36 boy', acil: true },
+        { ad: '18 mm MDF Tabla Paneli', stok: '4 levha', gerek: '14 levha', eksik: '10 levha', acil: true },
+        { ad: 'Elektrostatik Boya — Siyah', stok: '2 kg', gerek: '8 kg', eksik: '6 kg', acil: false },
+        { ad: 'Ayarlı Pingo Ayak M10', stok: '40 adet', gerek: '120 adet', eksik: '80 adet', acil: false },
+      ].map((m, i) => (
+        <div key={i} style={{
+          display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', marginBottom: 4, borderRadius: 9,
+          background: m.acil ? 'rgba(220,60,60,0.03)' : 'rgba(255,255,255,0.015)',
+          border: m.acil ? '1px solid rgba(220,60,60,0.08)' : '1px solid rgba(255,255,255,0.03)',
+        }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 10.5, fontFamily: FB, fontWeight: 600, color: C.text }}>{m.ad}</div>
+            <div style={{ fontSize: 9, fontFamily: FB, color: C.muted, marginTop: 2 }}>
+              Stok: {m.stok} · Gerekli: {m.gerek} · <span style={{ color: '#DC3C3C', fontWeight: 600 }}>Eksik: {m.eksik}</span>
+            </div>
+          </div>
+          <div style={{ fontSize: 8, fontFamily: FB, fontWeight: 600, color: C.cyan, background: `${C.cyan}12`, padding: '4px 10px', borderRadius: 6, cursor: 'pointer', flexShrink: 0 }}>Tedarik Et</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Sahne 3: Üretim Takip ── */
+function Scene3() {
+  const ist = [
+    { ad: 'Kesim', op: 'Fatma H.', pct: 100, c: '#3DB88A', durum: 'Tamamlandı' },
+    { ad: 'Kaynak', op: 'Mehmet', pct: 100, c: '#3DB88A', durum: 'Tamamlandı' },
+    { ad: 'Boya (Fason)', op: 'Dış Kaynak', pct: 75, c: C.lav, durum: 'Devam Ediyor' },
+    { ad: 'Montaj', op: 'Ahmet Usta', pct: 30, c: C.cyan, durum: 'Başladı' },
+    { ad: 'Paketleme', op: 'Mehmet', pct: 0, c: C.muted, durum: 'Bekliyor' },
+  ];
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Factory size={14} color={C.cyan} />
+          <span style={{ fontFamily: F, fontSize: 12, fontWeight: 700, color: C.text }}>Üretim Hattı — SP-2026-041</span>
+        </div>
+        <span style={{ fontSize: 9, fontFamily: FB, fontWeight: 600, color: C.cyan, background: `${C.cyan}12`, padding: '3px 10px', borderRadius: 6 }}>Üretimde</span>
+      </div>
+
+      {ist.map((s, i) => (
+        <div key={i} style={{ marginBottom: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: s.c }} />
+              <span style={{ fontSize: 10.5, fontFamily: FB, fontWeight: 600, color: C.text }}>{s.ad}</span>
+              {s.ad.includes('Fason') && <span style={{ fontSize: 7.5, fontFamily: FB, fontWeight: 600, color: C.lav, background: `${C.lav}15`, padding: '1px 6px', borderRadius: 4 }}>FASON</span>}
+            </div>
+            <span style={{ fontSize: 9, fontFamily: FB, color: C.muted }}>{s.op} · %{s.pct}</span>
+          </div>
+          <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.04)', overflow: 'hidden' }}>
+            <div style={{ width: `${s.pct}%`, height: '100%', borderRadius: 2, background: `linear-gradient(90deg, ${s.c}60, ${s.c})` }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Sahne 4: Sevkiyat & Teslim ── */
+function Scene4() {
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <div style={{ width: 56, height: 56, borderRadius: 16, background: '#3DB88A12', border: '1px solid #3DB88A20', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+        <CheckCircle size={26} color="#3DB88A" strokeWidth={1.6} />
+      </div>
+      <div style={{ fontFamily: F, fontSize: 18, fontWeight: 900, color: '#3DB88A', letterSpacing: '-0.5px', marginBottom: 4 }}>Teslim Edildi</div>
+      <div style={{ fontFamily: FB, fontSize: 10.5, color: C.sub, marginBottom: 20 }}>SP-2026-041 · Karaca Mobilya · Ankara Armada Şubesi</div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, maxWidth: 300, margin: '0 auto', textAlign: 'left' }}>
+        {[
+          { l: 'İrsaliye', v: '#IRN-4821' },
+          { l: 'Nakliyeci', v: 'Horoz Lojistik' },
+          { l: 'Teslim Tarihi', v: '10 Nisan 2026' },
+          { l: 'Sevk İçeriği', v: '31 kalem · 4 palet' },
+        ].map((x, i) => (
+          <div key={i} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.03)', padding: '8px 10px' }}>
+            <div style={{ fontSize: 8, color: C.muted, fontFamily: FB, marginBottom: 2 }}>{x.l}</div>
+            <div style={{ fontSize: 10.5, color: C.text, fontFamily: F, fontWeight: 700 }}>{x.v}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Anlatı metinleri ───────────────────────────────────────────────────── */
+const narrations = [
+  { num: '01', title: 'Sipariş sisteme girdi', sub: 'Karaca Mobilya · Ankara Armada Şubesi', desc: 'Bahar koleksiyonu açılışı için 24 sandalye, 6 masa ve 1 karşılama bankosu. Sistem siparişi aldı, stok analizini başlattı.' },
+  { num: '02', title: 'Eksik malzemeler belirlendi', sub: '4 kalem tedarik gerekiyor', desc: 'BOM reçetesi patlatıldı; profil, tabla, boya ve ayak eksik. Tedarikçilere tek tıkla sipariş oluşturuldu.' },
+  { num: '03', title: 'Üretim hattı çalışıyor', sub: '5 istasyon · 3 operatör · 1 fason', desc: 'Kesim ve kaynak tamamlandı. Boya fason atölyesinde. Montaj başladı, paketleme sırada bekliyor.' },
+  { num: '04', title: 'Sevkiyat tamamlandı', sub: 'Teslim: 10 Nisan 2026 · Horoz Lojistik', desc: '31 kalem, 4 palet halinde Ankara Armada Şubesine teslim edildi. Maliyet raporu ve kâr analizi hazır.' },
+];
+
+const scenes = [Scene1, Scene2, Scene3, Scene4];
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   MAIN — Scroll-Driven Sticky Showcase
+   SIFIR useState. Tüm useTransform hook'ları component body'de.
+   ══════════════════════════════════════════════════════════════════════════════ */
+export default function InteractiveShowcase() {
+  const sectionRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start start', 'end end'],
+  });
+
+  /* Section fade — giriş ve çıkışta hafif fade */
+  const sectionOp = useTransform(scrollYProgress, [0, 0.01, 0.98, 1], [0.5, 1, 1, 0.7]);
+
+  return (
+    <section
+      ref={sectionRef}
+      id="nasil"
+      style={{ height: '400vh', position: 'relative' }}
+    >
+      <motion.div style={{
+        position: 'sticky', top: 0, height: '100vh',
+        display: 'flex', alignItems: 'center',
+        background: C.bg,
+        opacity: sectionOp,
+      }}>
+        {/* Subtle ambient */}
+        <div style={{
+          position: 'absolute', top: '40%', left: '55%', transform: 'translate(-50%,-50%)',
+          width: 500, height: 350, borderRadius: '50%',
+          background: `radial-gradient(ellipse, ${C.cyan}06, transparent 55%)`,
+          pointerEvents: 'none',
+        }} />
+
+        <div style={{
+          maxWidth: 1100, width: '100%', margin: '0 auto', padding: '0 24px',
+          display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: 48,
+          alignItems: 'center',
+        }}>
+          {/* ═══ SOL: Anlatı ═══ */}
+          <div style={{ position: 'relative', minHeight: 260 }}>
+            {/* Label */}
+            <p style={{
+              position: 'absolute', top: -44, left: 0,
+              fontSize: 11, fontFamily: FB, color: C.cyan,
+              letterSpacing: '2px', textTransform: 'uppercase', fontWeight: 600,
+            }}>Nasıl Çalışır?</p>
+
+            {narrations.map((n, i) => (
+              <NarrationPanel key={i} index={i} progress={scrollYProgress}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 10 }}>
+                  <span style={{
+                    fontFamily: F, fontSize: 32, fontWeight: 900,
+                    color: C.cyan, opacity: 0.3, letterSpacing: '-2px',
+                  }}>{n.num}</span>
+                  <h3 style={{
+                    fontFamily: F, fontSize: 'clamp(20px, 2.5vw, 28px)', fontWeight: 800,
+                    color: C.text, letterSpacing: '-1px', lineHeight: 1.15,
+                  }}>{n.title}</h3>
+                </div>
+                <p style={{
+                  fontFamily: FB, fontSize: 12, fontWeight: 500,
+                  color: C.cyan, marginBottom: 10, opacity: 0.7,
+                }}>{n.sub}</p>
+                <p style={{
+                  fontFamily: FB, fontSize: 14.5, lineHeight: 1.75,
+                  color: C.sub, maxWidth: 380,
+                }}>{n.desc}</p>
+              </NarrationPanel>
+            ))}
           </div>
 
-          {/* Right: detail panel */}
-          <motion.div
-            key={activeStep}
-            initial={{ opacity: 0, y: 28, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              background: 'rgba(255,255,255,0.018)',
+          {/* ═══ SAĞ: Cam Ekran ═══ */}
+          <div style={{ perspective: '1000px' }}>
+            <div style={{
+              background: 'rgba(8,8,11,0.88)',
               backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
               ...GLASS,
-              borderRadius: 26, padding: '56px 48px',
-              position: 'relative', overflow: 'hidden', minHeight: 420,
-              display: 'flex', flexDirection: 'column', justifyContent: 'center',
-            }}
-          >
-            <div style={{
-              position: 'absolute', top: -100, right: -100,
-              width: 320, height: 320, borderRadius: '50%',
-              background: `radial-gradient(circle, ${steps[activeStep].color}12, transparent 60%)`,
-              pointerEvents: 'none', mixBlendMode: 'color-dodge',
-            }} />
+              borderRadius: 18, overflow: 'hidden',
+              boxShadow: '0 40px 80px rgba(0,0,0,0.5)',
+            }}>
+              {/* Title bar */}
+              <div style={{
+                padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 6,
+                borderBottom: '1px solid rgba(255,255,255,0.04)',
+                background: 'rgba(255,255,255,0.01)',
+              }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#DC3C3C', opacity: 0.6 }} />
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#FBBF24', opacity: 0.6 }} />
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3DB88A', opacity: 0.6 }} />
+                <span style={{ marginLeft: 8, fontSize: 10, color: C.muted, fontFamily: FB }}>Atölye OS · SP-2026-041</span>
+              </div>
 
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              <span style={{
-                fontFamily: F, fontSize: 88, fontWeight: 900,
-                backgroundImage: `linear-gradient(180deg, ${steps[activeStep].color}18, transparent)`,
-                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                position: 'absolute', top: -40, right: 0, lineHeight: 1, userSelect: 'none',
-                letterSpacing: '-4px',
-              }}>0{activeStep + 1}</span>
-
-              <motion.div
-                key={`ic-${activeStep}`}
-                initial={{ scale: 0.4, rotate: -12 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: 'spring', stiffness: 280, damping: 16 }}
-                whileHover={{ scale: 1.12, rotate: 5 }}
-                style={{
-                  width: 60, height: 60, borderRadius: 18,
-                  background: `${steps[activeStep].color}0C`,
-                  ...GLASS,
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  marginBottom: 28, cursor: 'pointer',
-                }}
-              >
-                {(() => { const I = steps[activeStep].icon; return <I size={27} color={steps[activeStep].color} strokeWidth={1.7} />; })()}
-              </motion.div>
-
-              <h3 style={{ fontFamily: F, fontSize: 30, fontWeight: 900, color: C.text, marginBottom: 18, letterSpacing: '-1.5px' }}>{steps[activeStep].title}</h3>
-              <p style={{ fontFamily: FB, fontSize: 15.5, lineHeight: 1.8, color: C.sub, maxWidth: 480, marginBottom: 36 }}>{steps[activeStep].detail}</p>
-
-              <div style={{ display: 'flex', gap: 8 }}>
-                {steps.map((_, i) => (
-                  <motion.div key={i} onClick={() => setActiveStep(i)}
-                    whileHover={{ scale: 1.35 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 14 }}
-                    style={{
-                      width: i === activeStep ? 36 : 8, height: 8, borderRadius: 4, cursor: 'pointer',
-                      background: i === activeStep ? steps[activeStep].color : 'rgba(255,255,255,0.06)',
-                      transition: 'width 0.35s ease, background 0.35s ease',
-                    }}
-                  />
+              {/* Scene container */}
+              <div style={{ position: 'relative', padding: '20px 22px', minHeight: 340 }}>
+                {scenes.map((SceneComp, i) => (
+                  <ScenePanel key={i} index={i} progress={scrollYProgress}>
+                    <SceneComp />
+                  </ScenePanel>
                 ))}
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
+      </motion.div>
 
-        <style>{`@media (max-width: 800px) { section > div > div:last-child { grid-template-columns: 1fr !important; } }`}</style>
-      </div>
+      <style>{`@media(max-width:900px){section>div>div:nth-child(2){grid-template-columns:1fr!important}}`}</style>
     </section>
   );
 }

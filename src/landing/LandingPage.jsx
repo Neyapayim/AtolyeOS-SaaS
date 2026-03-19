@@ -16,23 +16,22 @@ export default function LandingPage() {
       background: C.bg,
       color: C.text,
       fontFamily: FB,
-      overflowX: 'hidden',
     }}>
       <Navbar />
-      <HeroSection />
-      <TrustedBy />
-      <div id="ozellikler">
-        <FeaturesBento />
+      {/* overflowX:hidden sadece orb/animasyon taşması olan bölümlerde */}
+      <div style={{ overflowX: 'hidden' }}>
+        <HeroSection />
+        <TrustedBy />
+        <div id="ozellikler"><FeaturesBento /></div>
+        <Stats />
       </div>
-      <Stats />
-      <div id="nasil">
-        <InteractiveShowcase />
+      {/* InteractiveShowcase: overflow yok — useScroll serbest çalışır */}
+      <InteractiveShowcase />
+      <div style={{ overflowX: 'hidden' }}>
+        <div id="musteriler"><Testimonials /></div>
+        <FinalCTA />
+        <Footer />
       </div>
-      <div id="musteriler">
-        <Testimonials />
-      </div>
-      <FinalCTA />
-      <Footer />
     </div>
   );
 }
