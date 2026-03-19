@@ -359,11 +359,11 @@ export default function HeroSection() {
           marginBottom: 32,
           perspective: '600px',
         }}>
-          <CinematicText text="Siparişi Girin," delay={0.15} />
+          <CinematicText text="Siparişten Sevkiyata," delay={0.15} />
           <br />
-          <CinematicText text="Üretim Hızına" delay={0.5} gradient />
+          <CinematicText text="Tek Ekranda" delay={0.5} gradient />
           {' '}
-          <CinematicText text="Hükmedin" delay={0.75} gradient />
+          <CinematicText text="Dijital Atölye" delay={0.75} />
         </h1>
 
         {/* Subtitle — B2B pain-point */}
