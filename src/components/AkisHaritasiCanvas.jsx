@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -66,13 +66,15 @@ const nid = () => `n_${++_c}`;
 /* ═══════════════════════════════════════════
    BomNode — Tek node tipi (hepsi bagimsiz)
    ═══════════════════════════════════════════ */
-function BomNode({ data }) {
+function BomNode({ id, data }) {
   const renk = data.renk || C.cyan;
   const vState = data._v; // 'ok' | 'fail' | null
   const cls = vState === 'ok' ? 'akis-ok' : vState === 'fail' ? 'akis-fail' : '';
   const isCompound = data.bomTip === 'yarimamul' || data.bomTip === 'urun';
+  const isNakliye = data.bomTip === 'nakliye';
   const subItems = data._subItems || [];
   const matchedIds = data._matchedKalemIds || new Set();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <div className={cls} style={{
@@ -87,6 +89,7 @@ function BomNode({ data }) {
       backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
       boxShadow: 'inset 0 1px 0 rgba(255,255,255,.06)',
       transition: 'border-color .3s, background .3s, box-shadow .3s',
+      position: 'relative',
     }}>
       {/* Ust cubuk */}
       <div className="akis-bar" style={{
@@ -120,8 +123,59 @@ function BomNode({ data }) {
           letterSpacing: '0.5px', textTransform: 'uppercase',
         }}>
           {TIP[data.bomTip]?.label || data.bomTip}
-          {data.bomTip === 'nakliye' && data.nakliyeTur ? ` \u2022 ${data.nakliyeTur}` : ''}
+          {isNakliye && data.nakliyeTur ? ` \u2022 ${data.nakliyeTur}` : ''}
         </div>
+
+        {/* Nakliye tur secimi — tikla sec */}
+        {isNakliye && (
+          <div style={{ marginTop: 5 }}>
+            <button onClick={e => { e.stopPropagation(); setMenuOpen(v => !v); }}
+              style={{
+                padding: '3px 8px', borderRadius: 6, fontSize: 8, fontWeight: 600, width: '100%',
+                background: data.nakliyeTur
+                  ? `color-mix(in srgb, ${C.orange} 12%, transparent)`
+                  : `color-mix(in srgb, ${C.muted} 8%, transparent)`,
+                border: `1px solid ${data.nakliyeTur ? `color-mix(in srgb, ${C.orange} 25%, transparent)` : C.border}`,
+                color: data.nakliyeTur ? C.orange : C.muted,
+                cursor: 'pointer', fontFamily: FB, textAlign: 'left',
+                display: 'flex', alignItems: 'center', gap: 4,
+              }}>
+              <span>{'\uD83D\uDE9A'}</span>
+              <span>{data.nakliyeTur || 'Tur sec...'}</span>
+              <span style={{ marginLeft: 'auto', fontSize: 7 }}>{menuOpen ? '\u25B4' : '\u25BE'}</span>
+            </button>
+            {menuOpen && (
+              <div style={{
+                position: 'absolute', left: 8, right: 8, top: '100%', marginTop: 3,
+                background: C.s3, border: `1px solid ${C.borderHi}`, borderRadius: 10,
+                boxShadow: '0 8px 32px rgba(0,0,0,.5)', zIndex: 50, overflow: 'hidden',
+              }}>
+                {NAKLIYE_TURLERI.map(nt => (
+                  <button key={nt.id} onClick={e => {
+                    e.stopPropagation();
+                    data._onNakliyeSec?.(id, nt.label);
+                    setMenuOpen(false);
+                  }} style={{
+                    display: 'flex', alignItems: 'center', gap: 7,
+                    padding: '7px 12px', width: '100%', border: 'none',
+                    background: data.nakliyeTur === nt.label ? `color-mix(in srgb, ${C.orange} 15%, transparent)` : 'transparent',
+                    color: data.nakliyeTur === nt.label ? C.orange : C.text,
+                    fontSize: 10, fontWeight: data.nakliyeTur === nt.label ? 700 : 400,
+                    cursor: 'pointer', fontFamily: FB,
+                    borderBottom: `1px solid ${C.border}`, transition: 'background .12s',
+                  }}
+                    onMouseEnter={e => e.currentTarget.style.background = `color-mix(in srgb, ${C.orange} 10%, transparent)`}
+                    onMouseLeave={e => e.currentTarget.style.background = data.nakliyeTur === nt.label ? `color-mix(in srgb, ${C.orange} 15%, transparent)` : 'transparent'}
+                  >
+                    <span>{'\uD83D\uDE9A'}</span>
+                    <span>{nt.label}</span>
+                    {data.nakliyeTur === nt.label && <span style={{ marginLeft: 'auto', color: C.mint }}>{'\u2713'}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* YM / Urun alt kalem listesi */}
         {isCompound && subItems.length > 0 && (
@@ -147,7 +201,6 @@ function BomNode({ data }) {
                   </span>
                   <span style={{
                     color: matched ? C.text : C.sub,
-                    textDecoration: matched ? 'none' : 'none',
                     flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
                     {si.label}
@@ -342,6 +395,41 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
   const [flashEdges, setFlashEdges] = useState({});   // edgeId -> 'ok'|'fail'
   const wrapperRef = useRef(null);
 
+  // ── Tuvalde olan bomId'ler → paletten gizle ──
+  const usedBomIds = useMemo(() => new Set(nodes.map(n => n.data?.bomId).filter(Boolean)), [nodes]);
+  const filteredPalette = useMemo(() => bomPalette.filter(it => !usedBomIds.has(it.bomId)), [bomPalette, usedBomIds]);
+
+  // kaydet ref — circular dep onlemek icin
+  const kaydetRef = useRef(null);
+
+  // ── Nakliye tur secimi handler ──
+  const onNakliyeSec = useCallback((nodeId, turLabel) => {
+    setNodes(nds => {
+      const updated = nds.map(n =>
+        n.id === nodeId ? { ...n, data: { ...n.data, nakliyeTur: turLabel } } : n
+      );
+      setTimeout(() => kaydetRef.current?.(updated), 0);
+      return updated;
+    });
+  }, []);
+
+  // ── Nakliye node ekle (butondan) ──
+  const nakliyeEkle = useCallback(() => {
+    const pos = { x: 200 + Math.random() * 100, y: 100 + nodes.length * 60 };
+    const node = {
+      id: nid(), type: 'bomNode', position: pos,
+      data: {
+        bomId: `nakliye_${Date.now()}`, bomTip: 'nakliye',
+        label: 'Nakliye', ikon: TIP.nakliye.ikon, renk: TIP.nakliye.renk,
+      },
+    };
+    setNodes(nds => {
+      const updated = [...nds, node];
+      setTimeout(() => kaydetRef.current?.(updated), 0);
+      return updated;
+    });
+  }, [nodes.length]);
+
   // ── Kaydet ──
   const kaydet = useCallback((nds, eds) => {
     if (!urun?.id) return;
@@ -351,12 +439,13 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
       u.id === urun.id ? { ...u, akisHaritasi: {
         nodes: fn.map(n => ({
           id: n.id, type: 'bomNode', position: n.position,
-          data: { ...n.data, _v: undefined, _subItems: undefined, _matchedKalemIds: undefined },
+          data: { ...n.data, _v: undefined, _subItems: undefined, _matchedKalemIds: undefined, _onNakliyeSec: undefined },
         })),
         edges: fe.map(e => ({ id: e.id, source: e.source, target: e.target })),
       }} : u
     ));
   }, [urun?.id, nodes, edges, setUrunler]);
+  useEffect(() => { kaydetRef.current = kaydet; }, [kaydet]);
 
   // ── Validation calistir ──
   const runValidation = useCallback((nds, eds) => {
@@ -387,7 +476,7 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
     return map;
   }, [nodes, urun?.bom, yarimamulList, allKalemler]);
 
-  // ── Node'lara validation + subItems inject ──
+  // ── Node'lara validation + subItems + callbacks inject ──
   const nodesEnriched = useMemo(() =>
     nodes.map(n => {
       const vr = flashNodes[n.id];
@@ -398,10 +487,11 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
           _v: vr?.status || null,
           _subItems: subItemsMap[n.id] || [],
           _matchedKalemIds: vr?.matchedKalemIds || new Set(),
+          _onNakliyeSec: onNakliyeSec,
         },
       };
     }),
-    [nodes, flashNodes, subItemsMap]
+    [nodes, flashNodes, subItemsMap, onNakliyeSec]
   );
 
   // ── Edge styling ──
@@ -505,13 +595,17 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '6px 10px' }}>
-          {bomPalette.length === 0 ? (
+          {filteredPalette.length === 0 && bomPalette.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '24px 8px', color: C.muted, fontSize: 10, lineHeight: 1.5 }}>
               BOM recetesi bos. Once malzeme ekleyin.
             </div>
+          ) : filteredPalette.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '18px 8px', color: C.mint, fontSize: 10, lineHeight: 1.5 }}>
+              {'\u2713'} Tum kalemler tuvale eklendi
+            </div>
           ) : (
             Object.entries(
-              bomPalette.reduce((acc, it) => {
+              filteredPalette.reduce((acc, it) => {
                 const g = TIP[it.bomTip]?.label || 'Diger';
                 (acc[g] = acc[g] || []).push(it);
                 return acc;
@@ -529,7 +623,17 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
           )}
         </div>
 
+        {/* Alt butonlar: Nakliye + Temizle */}
         <div style={{ padding: '8px 10px', borderTop: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <button onClick={nakliyeEkle} style={{
+            padding: '7px 10px', borderRadius: 8, width: '100%',
+            background: `color-mix(in srgb, ${C.orange} 8%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${C.orange} 20%, transparent)`,
+            color: C.orange, fontSize: 9, fontWeight: 600, cursor: 'pointer', fontFamily: FB,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+          }}>
+            <span>{'\uD83D\uDE9A'}</span> Nakliye Ekle
+          </button>
           {nodes.length > 0 && (
             <button onClick={tumuTemizle} style={{
               padding: '6px 10px', borderRadius: 8, width: '100%',
@@ -659,33 +763,41 @@ function PaletItem({ item }) {
 export default function AkisHaritasiCanvas({ urun, setUrunler, hamMaddeler = [], yarimamulList = [], hizmetler = [] }) {
   const allKalemler = useMemo(() => [...hamMaddeler, ...yarimamulList, ...hizmetler], [hamMaddeler, yarimamulList, hizmetler]);
 
-  // ── BOM Paleti: HM, YM, Hizmet + Nakliye turleri + Nihai Urun ──
+  // ── Rekursif BOM Paleti: urunun BOM'u + YM'lerin ic BOM'lari ──
   const bomPalette = useMemo(() => {
     const items = [];
+    const seen = new Set(); // ayni kalemId tekrar eklenmesin
 
-    // BOM kalemleri
-    (urun?.bom || []).forEach(b => {
-      const kalem = allKalemler.find(x => x.id === b.kalemId);
-      if (!kalem) return;
-      let bomTip = b.tip;
-      if (b.tip === 'hizmet') bomTip = kalem.tip === 'fason' ? 'hizmet_fason' : 'hizmet_ic';
-      const meta = TIP[bomTip] || TIP.hammadde;
-      items.push({
-        bomId: b.id, kalemId: b.kalemId, bomTip,
-        label: kalem.ad || kalem.kod || '?',
-        ikon: meta.ikon, renk: meta.renk,
-        miktar: b.miktar, birim: b.birim,
-      });
-    });
+    // Rekursif BOM acici
+    const explodeBom = (bom, depth) => {
+      if (depth > 6 || !bom?.length) return;
+      bom.forEach(b => {
+        const kalem = allKalemler.find(x => x.id === b.kalemId);
+        if (!kalem) return;
+        // Tekrar kontrolu: ayni kalemId zaten varsa ekleme
+        if (seen.has(b.kalemId)) return;
+        seen.add(b.kalemId);
 
-    // Nakliye turleri
-    NAKLIYE_TURLERI.forEach(nt => {
-      items.push({
-        bomId: `nakliye_${nt.id}`, bomTip: 'nakliye',
-        label: nt.label, nakliyeTur: nt.label,
-        ikon: TIP.nakliye.ikon, renk: TIP.nakliye.renk,
+        let bomTip = b.tip;
+        if (b.tip === 'hizmet') bomTip = kalem.tip === 'fason' ? 'hizmet_fason' : 'hizmet_ic';
+        const meta = TIP[bomTip] || TIP.hammadde;
+        items.push({
+          bomId: b.id, kalemId: b.kalemId, bomTip,
+          label: kalem.ad || kalem.kod || '?',
+          ikon: meta.ikon, renk: meta.renk,
+          miktar: b.miktar, birim: b.birim,
+        });
+
+        // Eger YM ise, onun da ic BOM'unu ac
+        if (b.tip === 'yarimamul') {
+          const ym = yarimamulList.find(y => y.id === b.kalemId);
+          if (ym?.bom) explodeBom(ym.bom, depth + 1);
+        }
       });
-    });
+    };
+
+    // Urunun ust BOM'unu ac
+    explodeBom(urun?.bom || [], 0);
 
     // Nihai urun (kendisi)
     if (urun) {
@@ -697,7 +809,7 @@ export default function AkisHaritasiCanvas({ urun, setUrunler, hamMaddeler = [],
     }
 
     return items;
-  }, [urun?.bom, urun?.id, urun?.ad, allKalemler]);
+  }, [urun?.bom, urun?.id, urun?.ad, allKalemler, yarimamulList]);
 
   return (
     <ReactFlowProvider>
