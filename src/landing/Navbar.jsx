@@ -1,133 +1,151 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ArrowRight } from 'lucide-react';
 import { C, F, FB } from '../config/constants.js';
-
-const links = [
-  { label: 'Özellikler', href: '#ozellikler' },
-  { label: 'Nasıl Çalışır', href: '#nasil' },
-  { label: 'Müşteriler', href: '#musteriler' },
-];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 32);
-    window.addEventListener('scroll', fn, { passive: true });
-    return () => window.removeEventListener('scroll', fn);
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  const navItems = [
+    { label: 'Özellikler', href: '#ozellikler' },
+    { label: 'Nasıl Çalışır?', href: '#nasil' },
+    { label: 'Müşteriler', href: '#musteriler' },
+  ];
 
   return (
     <>
-      <nav
-        role="navigation"
-        aria-label="Ana navigasyon"
+      <motion.nav
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         style={{
           position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-          padding: scrolled ? '14px 24px' : '20px 24px',
-          background: scrolled ? 'rgba(6,6,8,0.92)' : 'transparent',
-          backdropFilter: scrolled ? 'blur(16px)' : 'none',
-          WebkitBackdropFilter: scrolled ? 'blur(16px)' : 'none',
+          padding: scrolled ? '12px 24px' : '20px 24px',
+          transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
+          background: scrolled ? 'rgba(6,6,8,0.85)' : 'transparent',
+          backdropFilter: scrolled ? 'blur(20px)' : 'none',
+          WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
           borderBottom: scrolled ? '1px solid rgba(255,255,255,0.04)' : '1px solid transparent',
-          transition: 'all 0.35s ease',
         }}
       >
         <div style={{
-          maxWidth: 1080, margin: '0 auto',
+          maxWidth: 1100, margin: '0 auto',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <Link to="/" style={{ textDecoration: 'none' }} aria-label="Ana sayfa">
-            <span style={{
-              fontFamily: F, fontSize: 18, fontWeight: 800,
-              color: C.text, letterSpacing: '-0.03em',
-            }}>Atölye OS</span>
+          {/* Logo */}
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <div style={{
+              fontFamily: F, fontSize: 20, fontWeight: 900,
+              backgroundImage: `linear-gradient(135deg, ${C.text}, ${C.cyan})`,
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              letterSpacing: '-0.02em',
+            }}>Atölye OS</div>
           </Link>
 
-          {/* Desktop */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 28 }} className="nav-desktop">
-            {links.map((l, i) => (
-              <a key={i} href={l.href} style={{
-                fontFamily: FB, fontSize: 13.5, fontWeight: 450,
+          {/* Desktop links */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 32,
+          }}>
+            {navItems.map((item, i) => (
+              <a key={i} href={item.href} style={{
+                fontFamily: FB, fontSize: 13.5, fontWeight: 500,
                 color: C.sub, textDecoration: 'none',
                 transition: 'color 0.2s',
               }}
               onMouseEnter={e => e.currentTarget.style.color = C.text}
               onMouseLeave={e => e.currentTarget.style.color = C.sub}
-              >{l.label}</a>
+              >{item.label}</a>
             ))}
+
             <Link to="/login" style={{
-              fontFamily: FB, fontSize: 13.5, fontWeight: 450,
+              fontFamily: FB, fontSize: 13.5, fontWeight: 500,
               color: C.sub, textDecoration: 'none',
-            }}>Giriş</Link>
-            <Link to="/register" style={{
-              fontFamily: FB, fontSize: 13.5, fontWeight: 600,
-              color: '#0C0800', textDecoration: 'none',
-              background: C.cyan, borderRadius: 8,
-              padding: '8px 18px',
-              transition: 'opacity 0.2s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
-            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-            >Ücretsiz Başla</Link>
+              transition: 'color 0.2s',
+            }}>Giriş Yap</Link>
+
+            <Link to="/register" style={{ textDecoration: 'none' }}>
+              <motion.div
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  background: `linear-gradient(135deg, ${C.cyan}, ${C.gold})`,
+                  borderRadius: 10, padding: '9px 20px',
+                  fontWeight: 600, fontSize: 13, color: '#0C0800',
+                  fontFamily: FB, cursor: 'pointer',
+                }}
+              >
+                Ücretsiz Başla
+                <ArrowRight size={14} />
+              </motion.div>
+            </Link>
           </div>
 
-          {/* Mobile toggle */}
+          {/* Mobile menu button */}
           <button
-            onClick={() => setOpen(!open)}
-            aria-label={open ? 'Menüyü kapat' : 'Menüyü aç'}
-            aria-expanded={open}
-            className="nav-mobile-btn"
+            onClick={() => setMobileOpen(!mobileOpen)}
             style={{
               display: 'none', background: 'none', border: 'none',
               color: C.text, cursor: 'pointer', padding: 4,
             }}
+            className="mobile-menu-btn"
           >
-            {open ? <X size={20} /> : <Menu size={20} />}
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
-      </nav>
+      </motion.nav>
 
       {/* Mobile menu */}
       <AnimatePresence>
-        {open && (
+        {mobileOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -8 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            role="menu"
+            exit={{ opacity: 0, y: -10 }}
             style={{
-              position: 'fixed', top: 56, left: 0, right: 0, zIndex: 99,
-              background: 'rgba(6,6,8,0.96)',
-              backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-              borderBottom: '1px solid rgba(255,255,255,0.04)',
-              padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 12,
+              position: 'fixed', top: 60, left: 0, right: 0, zIndex: 99,
+              background: 'rgba(6,6,8,0.95)',
+              backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+              borderBottom: '1px solid rgba(255,255,255,0.05)',
+              padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16,
             }}
           >
-            {links.map((l, i) => (
-              <a key={i} href={l.href} role="menuitem" onClick={() => setOpen(false)} style={{
-                fontFamily: FB, fontSize: 15, color: C.sub, textDecoration: 'none', padding: '8px 0',
-              }}>{l.label}</a>
+            {navItems.map((item, i) => (
+              <a key={i} href={item.href} onClick={() => setMobileOpen(false)} style={{
+                fontFamily: FB, fontSize: 15, color: C.sub,
+                textDecoration: 'none', padding: '8px 0',
+              }}>{item.label}</a>
             ))}
-            <Link to="/login" role="menuitem" onClick={() => setOpen(false)} style={{
-              fontFamily: FB, fontSize: 15, color: C.sub, textDecoration: 'none', padding: '8px 0',
-            }}>Giriş</Link>
-            <Link to="/register" role="menuitem" onClick={() => setOpen(false)} style={{
-              fontFamily: FB, fontSize: 14, fontWeight: 600, color: '#0C0800',
-              background: C.cyan, borderRadius: 8, padding: '12px 20px',
-              textDecoration: 'none', width: 'fit-content',
-            }}>Ücretsiz Başla</Link>
+            <Link to="/login" onClick={() => setMobileOpen(false)} style={{
+              fontFamily: FB, fontSize: 15, color: C.sub,
+              textDecoration: 'none', padding: '8px 0',
+            }}>Giriş Yap</Link>
+            <Link to="/register" onClick={() => setMobileOpen(false)} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              background: `linear-gradient(135deg, ${C.cyan}, ${C.gold})`,
+              borderRadius: 10, padding: '12px 24px', width: 'fit-content',
+              fontWeight: 600, fontSize: 14, color: '#0C0800',
+              fontFamily: FB, textDecoration: 'none',
+            }}>
+              Ücretsiz Başla <ArrowRight size={14} />
+            </Link>
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Responsive styles */}
       <style>{`
         @media (max-width: 768px) {
-          .nav-mobile-btn { display: block !important; }
-          .nav-desktop { display: none !important; }
+          .mobile-menu-btn { display: block !important; }
+          nav > div > div:nth-child(2) { display: none !important; }
         }
       `}</style>
     </>
