@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { C, F, FB, uid } from './config/constants.js';
+import { useTheme, THEME_OPTIONS } from './hooks/useTheme.js';
 import {
   INIT_SIPARISLER, INIT_HAM_MADDE, INIT_YARI_MAMUL, INIT_HIZMET,
   INIT_URUNLER, INIT_ISTASYONLAR, INIT_CALISANLAR, INIT_FASON,
@@ -46,6 +47,7 @@ const NAV_ITEMS = [
 ];
 
 export default function AppMain() {
+  const { themeId, switchTheme } = useTheme();
   const [tab, setTab] = useState("dashboard");
   const [mounted, setMounted] = useState(false);
   const [time, setTime] = useState(new Date());
@@ -242,8 +244,8 @@ export default function AppMain() {
       opacity: mounted ? 1 : 0, transition: "opacity .5s"
     }}>
       {/* Ambient Background */}
-      <div style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" }}>
-        <div style={{ position: "absolute", inset: 0, background: "#060608" }} />
+      <div className="ambient-orbs" style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" }}>
+        <div style={{ position: "absolute", inset: 0, background: C.bg }} />
         <div style={{
           position: "absolute", width: 800, height: 320, borderRadius: "50%",
           bottom: "-8%", left: "50%", transform: "translateX(-50%)",
@@ -265,7 +267,7 @@ export default function AppMain() {
       {/* Sidebar */}
       <aside style={{
         width: 236, position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 50,
-        background: "rgba(6,6,8,0.85)",
+        background: "var(--bg-sidebar, rgba(6,6,8,0.85))",
         backdropFilter: "blur(28px)", WebkitBackdropFilter: "blur(28px)",
         borderRight: "1px solid rgba(255,255,255,0.055)",
         display: "flex", flexDirection: "column",
@@ -361,6 +363,25 @@ export default function AppMain() {
             </div>
           ))}
         </nav>
+
+        {/* Tema Secici */}
+        <div style={{
+          padding: "10px 12px", borderTop: `1px solid rgba(255,255,255,0.06)`,
+          display: "flex", gap: 4, justifyContent: "center", flexShrink: 0,
+        }}>
+          {THEME_OPTIONS.map(t => (
+            <button key={t.id} onClick={() => switchTheme(t.id)} title={t.label}
+              style={{
+                flex: 1, padding: "6px 0", borderRadius: 8, cursor: "pointer",
+                border: themeId === t.id ? "1px solid rgba(255,255,255,.25)" : "1px solid transparent",
+                background: themeId === t.id ? "rgba(255,255,255,.1)" : "rgba(255,255,255,.03)",
+                color: "#fff", fontSize: 13, transition: "all .2s",
+                opacity: themeId === t.id ? 1 : .5,
+              }}>
+              {t.icon}
+            </button>
+          ))}
+        </div>
       </aside>
 
       {/* Main Content */}

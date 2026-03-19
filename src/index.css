@@ -2,7 +2,167 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
-body { background: #060608; font-family: 'Inter', sans-serif; }
+body { background: var(--bg-main, #060608); color: var(--text-main, #ffffff); font-family: 'Inter', sans-serif; }
+
+/* ══════════════════════════════════════════════════════════════
+   3'LÜ TEMA SİSTEMİ — CSS Variables
+   ══════════════════════════════════════════════════════════════ */
+
+/* 1. ORİJİNAL KOYU TEMA (Default) */
+[data-theme="dark"], :root {
+  --bg-main: #060608;
+  --bg-card: rgba(255,255,255,0.028);
+  --bg-sidebar: rgba(6,6,8,0.85);
+  --text-main: #EDE8DF;
+  --text-muted: rgba(237,232,223,0.4);
+  --accent-primary: #E8914A;
+  --accent-secondary: #3E7BD4;
+  --border-color: rgba(255,255,255,0.055);
+  --shadow-card: 0 24px 64px rgba(0,0,0,.7), 0 0 0 1px rgba(232,145,74,0.08);
+  --shadow-modal: 0 40px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(232,145,74,.05), inset 0 1px 0 rgba(255,255,255,.05);
+  --overlay-bg: rgba(0,0,0,.82);
+  --modal-bg: rgba(10,10,13,0.96);
+  --input-bg: transparent;
+  --select-bg: #10141E;
+  color-scheme: dark;
+}
+
+/* 2. PARASÜT TEMA (Açık + Koyu Sidebar) */
+[data-theme="parasut"] {
+  --bg-main: #F4F5F7;
+  --bg-card: #FFFFFF;
+  --bg-sidebar: #33363F;
+  --text-main: #2A2B2F;
+  --text-muted: #878C93;
+  --accent-primary: #E96458;
+  --accent-secondary: #48C7A6;
+  --border-color: #E2E4E8;
+  --shadow-card: 0 1px 3px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.04);
+  --shadow-modal: 0 20px 60px rgba(0,0,0,.12), 0 0 0 1px rgba(0,0,0,.06);
+  --overlay-bg: rgba(0,0,0,.35);
+  --modal-bg: #FFFFFF;
+  --input-bg: #F4F5F7;
+  --select-bg: #FFFFFF;
+  color-scheme: light;
+}
+
+/* 3. NORDİC LIGHT TEMA */
+[data-theme="nordic-light"] {
+  --bg-main: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --bg-sidebar: #0F172A;
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --accent-primary: #3B82F6;
+  --accent-secondary: #F59E0B;
+  --border-color: #E2E8F0;
+  --shadow-card: 0 1px 3px rgba(0,0,0,.05), 0 0 0 1px rgba(0,0,0,.03);
+  --shadow-modal: 0 20px 60px rgba(0,0,0,.1), 0 0 0 1px rgba(0,0,0,.05);
+  --overlay-bg: rgba(0,0,0,.3);
+  --modal-bg: #FFFFFF;
+  --input-bg: #F8FAFC;
+  --select-bg: #FFFFFF;
+  color-scheme: light;
+}
+
+/* ── AÇIK TEMA GLOBAL OVERRIDES ────────────────────────────────── */
+
+/* Card hover */
+[data-theme="parasut"] .card:hover,
+[data-theme="nordic-light"] .card:hover {
+  transform: translateY(-2px) !important;
+  border-color: var(--border-color) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+/* Modal */
+[data-theme="parasut"] .overlay,
+[data-theme="nordic-light"] .overlay {
+  background: var(--overlay-bg) !important;
+}
+[data-theme="parasut"] .modal,
+[data-theme="nordic-light"] .modal {
+  background: var(--modal-bg) !important;
+  border-color: var(--border-color) !important;
+  box-shadow: var(--shadow-modal) !important;
+}
+
+/* Inputs */
+[data-theme="parasut"] input,
+[data-theme="parasut"] textarea,
+[data-theme="parasut"] select,
+[data-theme="nordic-light"] input,
+[data-theme="nordic-light"] textarea,
+[data-theme="nordic-light"] select {
+  color: var(--text-main) !important;
+}
+[data-theme="parasut"] input::placeholder,
+[data-theme="parasut"] textarea::placeholder,
+[data-theme="nordic-light"] input::placeholder,
+[data-theme="nordic-light"] textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+[data-theme="parasut"] select option,
+[data-theme="nordic-light"] select option {
+  background: var(--select-bg) !important;
+  color: var(--text-main) !important;
+}
+
+/* Input focus */
+[data-theme="parasut"] .inp:focus,
+[data-theme="nordic-light"] .inp:focus {
+  border-color: var(--accent-primary) !important;
+  background: rgba(0,0,0,.02) !important;
+}
+
+/* Nav item hover */
+[data-theme="parasut"] .nav-item:hover,
+[data-theme="nordic-light"] .nav-item:hover {
+  background: rgba(255,255,255,0.08) !important;
+  color: #ffffff !important;
+}
+
+/* Scrollbar */
+[data-theme="parasut"] ::-webkit-scrollbar-thumb,
+[data-theme="nordic-light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,.12) !important;
+}
+
+/* Primary button */
+[data-theme="parasut"] .btn-p,
+[data-theme="nordic-light"] .btn-p {
+  color: #ffffff !important;
+}
+[data-theme="parasut"] .btn-p:hover,
+[data-theme="nordic-light"] .btn-p:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,.15) !important;
+}
+
+/* Ghost button */
+[data-theme="parasut"] .btn-g,
+[data-theme="nordic-light"] .btn-g {
+  background: rgba(0,0,0,.04) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-muted) !important;
+}
+[data-theme="parasut"] .btn-g:hover,
+[data-theme="nordic-light"] .btn-g:hover {
+  background: rgba(0,0,0,.07) !important;
+  border-color: var(--border-color) !important;
+}
+
+/* Tab button */
+[data-theme="parasut"] .tab-b:hover,
+[data-theme="nordic-light"] .tab-b:hover {
+  background: rgba(0,0,0,.04) !important;
+  color: var(--text-main) !important;
+}
+
+/* Ambient orbs — hide on light themes */
+[data-theme="parasut"] .ambient-orbs,
+[data-theme="nordic-light"] .ambient-orbs {
+  display: none !important;
+}
 
 @keyframes fade-up   { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
 @keyframes fade-in   { from{opacity:0} to{opacity:1} }
