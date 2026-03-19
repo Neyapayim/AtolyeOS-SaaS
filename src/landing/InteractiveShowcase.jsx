@@ -22,11 +22,10 @@ const GLASS = {
 
 /* Her adımın giriş animasyonu başlangıcı ve çıkış bitişi */
 const T = [
-  /* [giriş_başı, giriş_sonu, çıkış_başı, çıkış_sonu] */
-  [0.00, 0.00, 0.20, 0.23],   // Adım 0: baştan görünür, 0.20'de çıkmaya başlar
-  [0.20, 0.23, 0.45, 0.48],   // Adım 1
-  [0.45, 0.48, 0.70, 0.73],   // Adım 2
-  [0.70, 0.73, 1.50, 1.50],   // Adım 3: çıkışı yok (1.5 = ulaşılamaz)
+  [-0.01, 0.00, 0.20, 0.23],
+  [0.20,  0.23, 0.45, 0.48],
+  [0.45,  0.48, 0.70, 0.73],
+  [0.70,  0.73, 1.50, 1.51],
 ];
 
 /* ── SOL: Metin — absolute, üst üste, y geçişli ── */
