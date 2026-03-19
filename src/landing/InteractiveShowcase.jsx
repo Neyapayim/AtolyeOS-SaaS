@@ -1,224 +1,448 @@
-import { useState, useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { useRef, useState, useEffect } from 'react';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import {
-  ShoppingCart, ClipboardCheck, Factory, Package,
-  Truck, CheckCircle
+  ShoppingCart, AlertTriangle, Factory, ScanBarcode,
+  CheckCircle, Clock, Package, Truck
 } from 'lucide-react';
-import { C, F, FB } from '../config/constants.js';
+import { C, F, FB, GLASS } from '../config/constants.js';
 
-const GLASS = {
-  border: '1px solid rgba(255,255,255,0.06)',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
-};
-
+/* ══════════════════════════════════════════════════════════════════════════════
+   4 AŞAMA VERİLERİ
+   ══════════════════════════════════════════════════════════════════════════════ */
 const steps = [
-  { icon: ShoppingCart, title: 'Sipariş Alın', desc: 'Müşteri aradı, siparişi sisteme girin. Çoklu kalem, alt müşteri ve termin — hepsi tek formda.', color: C.cyan, detail: 'Sipariş girildiği an stok analizi otomatik çalışır. Stokta varsa direkt sevkiyata hazır; yoksa eksik malzeme listesi çıkar.' },
-  { icon: ClipboardCheck, title: 'Stok Kontrol', desc: 'Sistem her ham madde ve yarı mamülü kontrol eder, eksikleri hesaplar.', color: '#3E7BD4', detail: 'BOM reçetesi üzerinden rekürsif malzeme patlatma. Hangi depoda ne kadar var, neye ne kadar lazım — saniyeler içinde.' },
-  { icon: Factory, title: 'Üretime Gönder', desc: 'Tek tıkla toplu üretim emirleri. Aşamalar, süreler ve sorumlular otomatik atanır.', color: '#3DB88A', detail: 'Kanban tahtasında canlı aşama takibi, iş günlüğü, canlı zamanlayıcılar. Üretim hattınız artık şeffaf.' },
-  { icon: Package, title: 'Tedarik Et', desc: 'Eksik malzeme? Tedarikçiye sipariş, nakliye takibi, otomatik stok girişi.', color: C.gold, detail: 'Toplu, ürün bazlı veya sipariş bazlı 3 farklı görünümle tedarik sürecini komple izleyin.' },
-  { icon: Truck, title: 'Sevk Et', desc: 'Üretim bitti, sevkiyat emri oluşturun. Nakliye ve teslimat takibi dahil.', color: '#D46B2A', detail: 'Stok hareketleri otomatik güncellenir. İrsaliye numarası, fatura bilgisi, nakliyeci — hepsi kayıtta.' },
-  { icon: CheckCircle, title: 'Tamamla', desc: 'Sipariş teslim. Maliyet analizi ve kar/marj raporlarınız hazır.', color: '#3DB88A', detail: 'Siparişten teslimata her adım tek ekrandan izlenip raporlanabilir. "Bu sipariş bize ne kazandırdı?" sorusunun cevabı burada.' },
+  {
+    num: '01',
+    title: '1 Tıkla Siparişi Alın',
+    sub: 'Kanepeler, Masalar ve Teslimat Tarihleri',
+    desc: 'Müşteri aradığında siparişi saniyeler içinde girin. Çoklu kalem, alt müşteri, termin tarihi — hepsi tek formda. Stok analizi otomatik başlar.',
+  },
+  {
+    num: '02',
+    title: 'Malzeme İhtiyacını Anında Görün',
+    sub: 'Stokları Tüketen ve Otomatik Hesaplayan Zeka',
+    desc: 'BOM reçetesi üzerinden rekürsif malzeme patlatma. Hangi ham madde eksik, ne kadar lazım — saniyeler içinde belli. Tedarikçiye tek tıkla sipariş.',
+  },
+  {
+    num: '03',
+    title: 'Üretim Hattını Ateşleyin',
+    sub: 'İstasyonlar, CNC, Döşeme ve Operatör Barları',
+    desc: 'Kanban tahtasında aşama takibi, canlı zamanlayıcılar, iş günlüğü. Hangi istasyon ne yapıyor, kim ne kadar çalışmış — hepsi görünür.',
+  },
+  {
+    num: '04',
+    title: 'Barkodu Okutun, Sevk Edin',
+    sub: 'İrsaliye ve Teslimat Raporları',
+    desc: 'Üretim tamamlandı, sevkiyat emri oluşturuldu, nakliye takibi başladı. Stok hareketleri otomatik güncellenir. Teslim edildi damgası.',
+  },
 ];
 
-/* ── Scroll-Linked SVG Path ── */
-function ScrollPath({ containerRef }) {
-  const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start 80%', 'end 20%'] });
-  const pathLen = useTransform(scrollYProgress, [0, 1], [0, 1]);
-  const glowOp = useTransform(scrollYProgress, [0, 0.5, 1], [0.15, 0.85, 1]);
+/* ══════════════════════════════════════════════════════════════════════════════
+   AŞAMA MOCK-UP'LARI (Sağ panel içeriği)
+   ══════════════════════════════════════════════════════════════════════════════ */
 
+/* ── Aşama 1: Gelen Siparişler Tablosu ── */
+function MockOrders() {
+  const rows = [
+    { no: '#1042', musteri: 'Karaca Mobilya', urun: '3\'lü Kanepe Seti', durum: 'Onaylandı', color: '#3DB88A' },
+    { no: '#1043', musteri: 'Demir Metal', urun: 'Endüstriyel Raf (x24)', durum: 'Bekliyor', color: C.cyan },
+    { no: '#1044', musteri: 'Yılmaz Atölye', urun: 'Yemek Masası Takımı', durum: 'Acil', color: '#DC3C3C' },
+    { no: '#1045', musteri: 'Özkan Tekstil', urun: 'Ofis Koltuğu (x40)', durum: 'Onaylandı', color: '#3DB88A' },
+    { no: '#1046', musteri: 'Atlas Dekor', urun: 'Sehpa + TV Ünitesi', durum: 'Bekliyor', color: C.cyan },
+  ];
   return (
-    <svg style={{ position: 'absolute', left: 39, top: 0, width: 2, height: '100%', overflow: 'visible', zIndex: 0, pointerEvents: 'none' }}>
-      <defs>
-        <linearGradient id="goldFlow" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={C.cyan} />
-          <stop offset="50%" stopColor={C.gold} />
-          <stop offset="100%" stopColor={C.cyan} />
-        </linearGradient>
-        <filter id="pathGlow">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b" />
-          <feMerge><feMergeNode in="b" /><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-      </defs>
-      <motion.line x1="1" y1="0" x2="1" y2="100%" stroke="rgba(255,255,255,0.03)" strokeWidth="2" />
-      <motion.line
-        x1="1" y1="0" x2="1" y2="100%"
-        stroke="url(#goldFlow)" strokeWidth="2" filter="url(#pathGlow)"
-        style={{ pathLength: pathLen, opacity: glowOp }} strokeLinecap="round"
-      />
-      <motion.circle
-        cx="1" r="5" fill={C.gold} filter="url(#pathGlow)"
-        style={{
-          cy: useTransform(scrollYProgress, [0, 1], ['0%', '100%']),
-          opacity: useTransform(scrollYProgress, [0, 0.04, 0.96, 1], [0, 1, 1, 0]),
-        }}
-      />
-    </svg>
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+        <ShoppingCart size={16} color={C.cyan} />
+        <span style={{ fontFamily: F, fontSize: 13, fontWeight: 700, color: C.text, letterSpacing: '-0.5px' }}>Gelen Siparişler</span>
+        <span style={{ marginLeft: 'auto', fontSize: 10, fontFamily: FB, color: C.muted }}>Bugün · 5 yeni</span>
+      </div>
+      <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.04)' }}>
+        {/* Header */}
+        <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr 1fr 80px', gap: 8, padding: '8px 14px', background: 'rgba(255,255,255,0.015)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+          {['No', 'Müşteri', 'Ürün', 'Durum'].map(h => (
+            <span key={h} style={{ fontSize: 9, color: C.muted, fontFamily: FB, fontWeight: 600 }}>{h}</span>
+          ))}
+        </div>
+        {rows.map((r, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: i * 0.08, duration: 0.4 }}
+            style={{
+              display: 'grid', gridTemplateColumns: '64px 1fr 1fr 80px', gap: 8,
+              padding: '10px 14px', alignItems: 'center',
+              borderBottom: i < rows.length - 1 ? '1px solid rgba(255,255,255,0.025)' : 'none',
+            }}
+          >
+            <span style={{ fontSize: 11, fontFamily: F, fontWeight: 700, color: C.sub }}>{r.no}</span>
+            <span style={{ fontSize: 10.5, fontFamily: FB, color: C.sub }}>{r.musteri}</span>
+            <span style={{ fontSize: 10.5, fontFamily: FB, color: C.muted }}>{r.urun}</span>
+            <span style={{
+              fontSize: 9, fontFamily: FB, fontWeight: 600, color: r.color,
+              background: `${r.color}12`, borderRadius: 6, padding: '3px 8px', textAlign: 'center',
+            }}>{r.durum}</span>
+          </motion.div>
+        ))}
+      </div>
+    </div>
   );
 }
 
-export default function InteractiveShowcase() {
-  const [activeStep, setActiveStep] = useState(0);
-  const stepsRef = useRef(null);
-
+/* ── Aşama 2: Stok Uyarı ve Tedarik Listesi ── */
+function MockStockAlert() {
+  const alerts = [
+    { madde: 'Sünger 30D (Levha)', stok: '2 adet', ihtiyac: '18 adet', acil: true },
+    { madde: 'Kumaş Keten Gri', stok: '4.2 mt', ihtiyac: '28 mt', acil: true },
+    { madde: 'Profil 40x20 HR', stok: '12 boy', ihtiyac: '48 boy', acil: false },
+    { madde: 'Cila Vernik (Lt)', stok: '3 lt', ihtiyac: '8 lt', acil: false },
+  ];
   return (
-    <section style={{
-      padding: '160px 24px',
-      background: `linear-gradient(180deg, ${C.bg}, ${C.s1} 25%, ${C.s1} 75%, ${C.bg})`,
-      position: 'relative', isolation: 'isolate',
-    }}>
-      {/* Ambient orb */}
-      <div style={{
-        position: 'absolute', width: 550, height: 550, borderRadius: '50%',
-        background: `radial-gradient(circle, ${C.cyan}0C, transparent 65%)`,
-        top: '18%', left: '58%', pointerEvents: 'none', mixBlendMode: 'color-dodge',
-        animation: 'landing-orb-drift-2 22s ease-in-out infinite',
-      }} />
-
-      <div style={{ maxWidth: 1140, margin: '0 auto', position: 'relative', zIndex: 1 }}>
-        {/* ── Header ── */}
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+        <AlertTriangle size={16} color="#DC3C3C" />
+        <span style={{ fontFamily: F, fontSize: 13, fontWeight: 700, color: C.text, letterSpacing: '-0.5px' }}>Stok Uyarıları</span>
+        <span style={{ marginLeft: 'auto', fontSize: 10, fontFamily: FB, background: '#DC3C3C20', color: '#DC3C3C', borderRadius: 6, padding: '2px 8px', fontWeight: 600 }}>4 eksik</span>
+      </div>
+      {alerts.map((a, i) => (
         <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          style={{ textAlign: 'center', marginBottom: 88, perspective: '600px' }}
+          key={i}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.1, duration: 0.4 }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '12px 14px', marginBottom: 6, borderRadius: 10,
+            background: a.acil ? 'rgba(220,60,60,0.04)' : 'rgba(255,255,255,0.015)',
+            border: a.acil ? '1px solid rgba(220,60,60,0.12)' : '1px solid rgba(255,255,255,0.03)',
+          }}
         >
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            style={{ fontSize: 12, fontFamily: FB, color: C.cyan, letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 20 }}
-          >Nasıl Çalışır?</motion.p>
-          <h2 style={{ fontFamily: F, fontSize: 'clamp(30px, 4.5vw, 48px)', fontWeight: 900, color: C.text, letterSpacing: '-2px', lineHeight: 1.08 }}>
-            {['Siparişten', 'Teslimata,'].map((w, i) => (
-              <span key={i} style={{ display: 'inline-block', overflow: 'hidden', verticalAlign: 'top' }}>
-                <motion.span initial={{ y: '105%', rotateX: 45, opacity: 0 }} whileInView={{ y: '0%', rotateX: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.1 + i * 0.07, ease: [0.16, 1, 0.3, 1] }} style={{ display: 'inline-block', transformOrigin: 'bottom center' }}>{w}</motion.span>{'\u00A0'}
-              </span>
-            ))}
-            <br />
-            {['Kesintisiz', 'Akış'].map((w, i) => (
-              <span key={i} style={{ display: 'inline-block', overflow: 'hidden', verticalAlign: 'top' }}>
-                <motion.span initial={{ y: '105%', rotateX: 45, opacity: 0 }} whileInView={{ y: '0%', rotateX: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.3 + i * 0.07, ease: [0.16, 1, 0.3, 1] }} style={{ display: 'inline-block', transformOrigin: 'bottom center', backgroundImage: `linear-gradient(135deg, ${C.cyan}, ${C.gold})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{w}</motion.span>{i === 0 && '\u00A0'}
-              </span>
-            ))}
-          </h2>
-        </motion.div>
-
-        {/* ── Content grid ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: 56, alignItems: 'start' }}>
-          {/* Left: steps with SVG line */}
-          <div ref={stepsRef} style={{ display: 'flex', flexDirection: 'column', gap: 6, position: 'relative' }}>
-            <ScrollPath containerRef={stepsRef} />
-            {steps.map((s, i) => {
-              const Icon = s.icon;
-              const active = activeStep === i;
-              return (
-                <motion.div key={i}
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.07, duration: 0.5 }}
-                  onClick={() => setActiveStep(i)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 16,
-                    padding: '18px 20px', borderRadius: 16, cursor: 'pointer',
-                    background: active ? `${s.color}06` : 'transparent',
-                    border: active ? `1px solid ${s.color}18` : '1px solid transparent',
-                    transition: 'all 0.35s ease', position: 'relative', zIndex: 1,
-                  }}
-                >
-                  <motion.div
-                    whileHover={{ scale: 1.18 }}
-                    whileTap={{ scale: 0.82 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 12 }}
-                    style={{
-                      width: 42, height: 42, borderRadius: 13, flexShrink: 0,
-                      background: active ? `${s.color}10` : 'rgba(255,255,255,0.025)',
-                      ...GLASS,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
-                  >
-                    <Icon size={18} color={active ? s.color : C.muted} strokeWidth={1.8} />
-                  </motion.div>
-                  <div>
-                    <div style={{ fontFamily: F, fontSize: 14, fontWeight: 700, color: active ? C.text : C.sub, letterSpacing: '-0.5px', transition: 'color 0.3s' }}>{s.title}</div>
-                    <div style={{ fontFamily: FB, fontSize: 11.5, color: C.muted, lineHeight: 1.45, marginTop: 3 }}>{s.desc}</div>
-                  </div>
-                </motion.div>
-              );
-            })}
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 11.5, fontFamily: FB, fontWeight: 600, color: C.text }}>{a.madde}</div>
+            <div style={{ fontSize: 9.5, fontFamily: FB, color: C.muted, marginTop: 2 }}>Stok: {a.stok} → İhtiyaç: {a.ihtiyac}</div>
           </div>
-
-          {/* Right: detail panel */}
           <motion.div
-            key={activeStep}
-            initial={{ opacity: 0, y: 28, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+            whileHover={{ scale: 1.05 }}
             style={{
-              background: 'rgba(255,255,255,0.018)',
-              backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
-              ...GLASS,
-              borderRadius: 26, padding: '56px 48px',
-              position: 'relative', overflow: 'hidden', minHeight: 420,
-              display: 'flex', flexDirection: 'column', justifyContent: 'center',
+              fontSize: 9, fontFamily: FB, fontWeight: 600,
+              background: `${C.cyan}15`, color: C.cyan, borderRadius: 7,
+              padding: '5px 12px', cursor: 'pointer',
+            }}
+          >Tedarik Et</motion.div>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Aşama 3: Üretim İstasyon Raporu ── */
+function MockProduction() {
+  const stations = [
+    { name: 'Kesim Masası', operator: 'Fatma H.', pct: 100, color: '#3DB88A' },
+    { name: 'Döşeme Tezgahı', operator: 'Ahmet Usta', pct: 62, color: C.cyan },
+    { name: 'Montaj İstasyonu', operator: 'Mehmet', pct: 35, color: C.gold },
+    { name: 'Statik Boya (Fason)', operator: 'Dış Kaynak', pct: 80, color: C.lav },
+    { name: 'Paketleme', operator: 'Mehmet', pct: 0, color: C.muted },
+  ];
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+        <Factory size={16} color={C.cyan} />
+        <span style={{ fontFamily: F, fontSize: 13, fontWeight: 700, color: C.text, letterSpacing: '-0.5px' }}>Üretim Hattı — UE #1042</span>
+        <span style={{ marginLeft: 'auto', fontSize: 10, fontFamily: FB, color: '#3DB88A' }}>●  Aktif</span>
+      </div>
+      {stations.map((s, i) => (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: i * 0.09, duration: 0.4 }}
+          style={{ marginBottom: 12 }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+            <span style={{ fontSize: 11, fontFamily: FB, fontWeight: 600, color: C.text }}>{s.name}</span>
+            <span style={{ fontSize: 10, fontFamily: FB, color: C.muted }}>{s.operator} · %{s.pct}</span>
+          </div>
+          <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.04)', overflow: 'hidden' }}>
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${s.pct}%` }}
+              transition={{ delay: 0.3 + i * 0.1, duration: 1, ease: [0.16, 1, 0.3, 1] }}
+              style={{ height: '100%', borderRadius: 3, background: `linear-gradient(90deg, ${s.color}80, ${s.color})` }}
+            />
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Aşama 4: Sevkiyat / Teslim Edildi ── */
+function MockShipment() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 280 }}>
+      <motion.div
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+        style={{
+          width: 80, height: 80, borderRadius: 24,
+          background: `linear-gradient(135deg, #3DB88A15, #3DB88A08)`,
+          border: '1px solid rgba(61,184,138,0.2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          marginBottom: 24,
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
+        }}
+      >
+        <ScanBarcode size={36} color="#3DB88A" strokeWidth={1.5} />
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.5 }}
+        style={{ textAlign: 'center' }}
+      >
+        <div style={{
+          fontFamily: F, fontSize: 22, fontWeight: 900, color: '#3DB88A',
+          letterSpacing: '-1px', marginBottom: 8,
+        }}>Teslim Edildi ✓</div>
+        <div style={{ fontFamily: FB, fontSize: 12, color: C.sub, marginBottom: 20 }}>Sipariş #1042 · Karaca Mobilya · 3'lü Kanepe Seti</div>
+      </motion.div>
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, width: '100%', maxWidth: 320,
+      }}>
+        {[
+          { label: 'İrsaliye', val: '#IRN-4821' },
+          { label: 'Nakliyeci', val: 'Aras Kargo' },
+          { label: 'Kâr Marjı', val: '%28.4' },
+        ].map((item, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 + i * 0.1, duration: 0.4 }}
+            style={{
+              background: 'rgba(255,255,255,0.02)', borderRadius: 10,
+              border: '1px solid rgba(255,255,255,0.04)',
+              padding: '10px 12px', textAlign: 'center',
             }}
           >
-            <div style={{
-              position: 'absolute', top: -100, right: -100,
-              width: 320, height: 320, borderRadius: '50%',
-              background: `radial-gradient(circle, ${steps[activeStep].color}12, transparent 60%)`,
-              pointerEvents: 'none', mixBlendMode: 'color-dodge',
+            <div style={{ fontSize: 9, color: C.muted, fontFamily: FB, marginBottom: 4 }}>{item.label}</div>
+            <div style={{ fontSize: 12, color: C.text, fontFamily: F, fontWeight: 700 }}>{item.val}</div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const mockComponents = [MockOrders, MockStockAlert, MockProduction, MockShipment];
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   SCROLL-MASKED STICKY SHOWCASE
+   ══════════════════════════════════════════════════════════════════════════════ */
+export default function InteractiveShowcase() {
+  const containerRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ['start start', 'end end'],
+  });
+
+  /* 0→1 scroll → 0,1,2,3 step index */
+  const stepIndex = useTransform(scrollYProgress, [0, 0.25, 0.5, 0.75, 1], [0, 0, 1, 2, 3]);
+
+  return (
+    <section
+      ref={containerRef}
+      style={{ height: '400vh', position: 'relative' }}
+    >
+      {/* ── STICKY VIEWPORT ── */}
+      <div style={{
+        position: 'sticky', top: 0, height: '100vh',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        overflow: 'hidden',
+        background: C.bg,
+      }}>
+        {/* Ambient glow behind screen */}
+        <div style={{
+          position: 'absolute', top: '50%', left: '60%',
+          transform: 'translate(-50%,-50%)',
+          width: 700, height: 500, borderRadius: '50%',
+          background: `radial-gradient(ellipse, ${C.cyan}0A, transparent 60%)`,
+          pointerEvents: 'none', mixBlendMode: 'color-dodge',
+        }} />
+        <div style={{
+          position: 'absolute', top: '30%', left: '30%',
+          width: 400, height: 400, borderRadius: '50%',
+          background: `radial-gradient(ellipse, ${C.gold}08, transparent 60%)`,
+          pointerEvents: 'none', mixBlendMode: 'color-dodge',
+        }} />
+
+        <div style={{
+          maxWidth: 1140, width: '100%', margin: '0 auto', padding: '0 24px',
+          display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: 64,
+          alignItems: 'center', position: 'relative', zIndex: 1,
+        }}>
+          {/* ════ SOL: Hikaye / Metin ════ */}
+          <div>
+            {/* Section label */}
+            <motion.p
+              style={{ opacity: useTransform(scrollYProgress, [0, 0.05], [0, 1]) }}
+            >
+              <span style={{
+                fontSize: 12, fontFamily: FB, color: C.cyan,
+                letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 600,
+              }}>Nasıl Çalışır?</span>
+            </motion.p>
+
+            <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', gap: 28 }}>
+              {steps.map((s, i) => (
+                <StepText key={i} step={s} index={i} scrollProgress={scrollYProgress} />
+              ))}
+            </div>
+          </div>
+
+          {/* ════ SAĞ: Sinematik Mock-up Ekranı ════ */}
+          <div style={{ position: 'relative' }}>
+            {/* Outer glow */}
+            <motion.div style={{
+              position: 'absolute', inset: -8,
+              background: `linear-gradient(135deg, ${C.cyan}18, transparent 40%, ${C.gold}12, transparent 75%)`,
+              borderRadius: 28, filter: 'blur(30px)',
+              opacity: useTransform(scrollYProgress, [0, 0.08], [0, 1]),
             }} />
 
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              <span style={{
-                fontFamily: F, fontSize: 88, fontWeight: 900,
-                backgroundImage: `linear-gradient(180deg, ${steps[activeStep].color}18, transparent)`,
-                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                position: 'absolute', top: -40, right: 0, lineHeight: 1, userSelect: 'none',
-                letterSpacing: '-4px',
-              }}>0{activeStep + 1}</span>
-
-              <motion.div
-                key={`ic-${activeStep}`}
-                initial={{ scale: 0.4, rotate: -12 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: 'spring', stiffness: 280, damping: 16 }}
-                whileHover={{ scale: 1.12, rotate: 5 }}
-                style={{
-                  width: 60, height: 60, borderRadius: 18,
-                  background: `${steps[activeStep].color}0C`,
-                  ...GLASS,
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  marginBottom: 28, cursor: 'pointer',
-                }}
-              >
-                {(() => { const I = steps[activeStep].icon; return <I size={27} color={steps[activeStep].color} strokeWidth={1.7} />; })()}
-              </motion.div>
-
-              <h3 style={{ fontFamily: F, fontSize: 30, fontWeight: 900, color: C.text, marginBottom: 18, letterSpacing: '-1.5px' }}>{steps[activeStep].title}</h3>
-              <p style={{ fontFamily: FB, fontSize: 15.5, lineHeight: 1.8, color: C.sub, maxWidth: 480, marginBottom: 36 }}>{steps[activeStep].detail}</p>
-
-              <div style={{ display: 'flex', gap: 8 }}>
-                {steps.map((_, i) => (
-                  <motion.div key={i} onClick={() => setActiveStep(i)}
-                    whileHover={{ scale: 1.35 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 14 }}
-                    style={{
-                      width: i === activeStep ? 36 : 8, height: 8, borderRadius: 4, cursor: 'pointer',
-                      background: i === activeStep ? steps[activeStep].color : 'rgba(255,255,255,0.06)',
-                      transition: 'width 0.35s ease, background 0.35s ease',
-                    }}
-                  />
-                ))}
+            {/* The screen */}
+            <motion.div
+              style={{
+                position: 'relative',
+                background: 'rgba(8,8,11,0.9)',
+                backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                boxShadow: `0 50px 120px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1)`,
+                borderRadius: 22, overflow: 'hidden',
+                opacity: useTransform(scrollYProgress, [0, 0.08], [0, 1]),
+                scale: useTransform(scrollYProgress, [0, 0.08], [0.95, 1]),
+              }}
+            >
+              {/* Top bar */}
+              <div style={{
+                padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 7,
+                borderBottom: '1px solid rgba(255,255,255,0.04)',
+                background: 'rgba(255,255,255,0.012)',
+              }}>
+                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#DC3C3C', opacity: 0.7 }} />
+                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#FBBF24', opacity: 0.7 }} />
+                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#3DB88A', opacity: 0.7 }} />
+                <span style={{ marginLeft: 12, fontSize: 10.5, color: C.muted, fontFamily: FB }}>Atölye OS</span>
               </div>
-            </div>
-          </motion.div>
-        </div>
 
-        <style>{`@media (max-width: 800px) { section > div > div:last-child { grid-template-columns: 1fr !important; } }`}</style>
+              {/* Content area */}
+              <div style={{ padding: '24px 28px', minHeight: 380 }}>
+                <MockContent scrollProgress={scrollYProgress} />
+              </div>
+            </motion.div>
+          </div>
+        </div>
       </div>
     </section>
   );
+}
+
+/* ── Step Text with scroll-driven opacity ── */
+function StepText({ step, index, scrollProgress }) {
+  const ranges = [
+    [0.00, 0.10, 0.22],
+    [0.22, 0.30, 0.47],
+    [0.47, 0.55, 0.72],
+    [0.72, 0.78, 1.00],
+  ];
+  const [fadeIn, peak, fadeOut] = ranges[index];
+
+  const opacity = useTransform(
+    scrollProgress,
+    [fadeIn, peak, fadeOut],
+    [0.15, 1, 0.15]
+  );
+  const scale = useTransform(
+    scrollProgress,
+    [fadeIn, peak, fadeOut],
+    [0.94, 1, 0.94]
+  );
+  const y = useTransform(
+    scrollProgress,
+    [fadeIn, peak, fadeOut],
+    [8, 0, -8]
+  );
+
+  return (
+    <motion.div style={{ opacity, scale, y, transformOrigin: 'left center' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 8 }}>
+        <span style={{
+          fontFamily: F, fontSize: 32, fontWeight: 900,
+          backgroundImage: `linear-gradient(135deg, ${C.cyan}, ${C.gold})`,
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          letterSpacing: '-2px', lineHeight: 1,
+        }}>{step.num}</span>
+        <h3 style={{
+          fontFamily: F, fontSize: 'clamp(20px, 2.5vw, 28px)', fontWeight: 900,
+          color: C.text, letterSpacing: '-1.5px', lineHeight: 1.1,
+        }}>{step.title}</h3>
+      </div>
+      <p style={{
+        fontFamily: FB, fontSize: 12, fontWeight: 600,
+        color: C.cyan, letterSpacing: '0.5px', marginBottom: 8,
+        textTransform: 'uppercase',
+      }}>{step.sub}</p>
+      <p style={{
+        fontFamily: FB, fontSize: 14, lineHeight: 1.75,
+        color: C.sub, maxWidth: 420,
+      }}>{step.desc}</p>
+    </motion.div>
+  );
+}
+
+/* ── Mock Content Switcher with AnimatePresence ── */
+function MockContent({ scrollProgress }) {
+  const stepIndex = useTransform(scrollProgress, [0, 0.24, 0.25, 0.49, 0.50, 0.74, 0.75, 1], [0, 0, 1, 1, 2, 2, 3, 3]);
+
+  return (
+    <motion.div>
+      <MockContentInner stepMotion={stepIndex} />
+    </motion.div>
+  );
+}
+
+function MockContentInner({ stepMotion }) {
+  /* We need a React state from a motion value */
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  /* Sync motion value to state */
+  useMotionValueEvent(stepMotion, setActiveIdx);
+
+  const ActiveMock = mockComponents[activeIdx] || mockComponents[0];
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={activeIdx}
+        initial={{ opacity: 0, filter: 'blur(8px)', y: 16 }}
+        animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
+        exit={{ opacity: 0, filter: 'blur(8px)', y: -16 }}
+        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <ActiveMock />
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+/* ── Helper: subscribe to MotionValue changes ── */
+function useMotionValueEvent(motionValue, setter) {
+  useEffect(() => {
+    const unsubscribe = motionValue.on('change', (v) => {
+      setter(Math.round(v));
+    });
+    return unsubscribe;
+  }, [motionValue, setter]);
 }
