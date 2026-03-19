@@ -351,7 +351,10 @@ export default function MaliyetPage({
 
       {/* ═══════════════ AKIŞ SEKMESİ — React Flow Gorsel Tuval ═══════════════ */}
       {malTab === "akis" && (
-        <AkisHaritasiCanvas urun={u} setUrunler={setUrunler} />
+        <AkisHaritasiCanvas
+          urun={u} setUrunler={setUrunler}
+          hamMaddeler={hamMaddeler} yarimamulList={yarimamulList} hizmetler={hizmetler}
+        />
       )}
 
       {/* ═══════════════ ÖZET SEKMESİ ═══════════════ */}
