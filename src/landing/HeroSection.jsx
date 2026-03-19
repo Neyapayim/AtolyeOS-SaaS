@@ -1,18 +1,77 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, useAnimation } from 'framer-motion';
 import { ArrowRight, Play } from 'lucide-react';
 import { C, F, FB } from '../config/constants.js';
 
-/* ── Floating Orbs ─────────────────────────────────────────────────────────── */
-function Orb({ size, color, top, left, delay, duration, animation }) {
+/* ── Magnetic Button Hook ──────────────────────────────────────────────────── */
+function useMagnetic(strength = 0.3) {
+  const ref = useRef(null);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = useCallback((e) => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = (e.clientX - cx) * strength;
+    const dy = (e.clientY - cy) * strength;
+    setOffset({ x: dx, y: dy });
+  }, [strength]);
+
+  const handleMouseLeave = useCallback(() => {
+    setOffset({ x: 0, y: 0 });
+  }, []);
+
+  return { ref, offset, handleMouseMove, handleMouseLeave };
+}
+
+/* ── Cinematic Word Reveal ─────────────────────────────────────────────────── */
+function CinematicText({ text, delay = 0, gradient = false }) {
+  const words = text.split(' ');
+  return (
+    <span style={{ display: 'inline' }}>
+      {words.map((word, i) => (
+        <span key={i} style={{ display: 'inline-block', overflow: 'hidden', verticalAlign: 'top' }}>
+          <motion.span
+            initial={{ y: '110%', rotateX: 45, opacity: 0 }}
+            animate={{ y: '0%', rotateX: 0, opacity: 1 }}
+            transition={{
+              duration: 0.8,
+              delay: delay + i * 0.07,
+              ease: [0.16, 1, 0.3, 1],
+            }}
+            style={{
+              display: 'inline-block',
+              transformOrigin: 'bottom center',
+              ...(gradient ? {
+                backgroundImage: `linear-gradient(135deg, ${C.cyan}, ${C.gold})`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              } : {}),
+            }}
+          >
+            {word}
+          </motion.span>
+          {i < words.length - 1 && '\u00A0'}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/* ── Blend-Mode Orbs ───────────────────────────────────────────────────────── */
+function BlendOrb({ size, color, top, left, delay, duration, animation }) {
   return (
     <div style={{
       position: 'absolute', width: size, height: size, borderRadius: '50%',
-      background: `radial-gradient(circle, ${color}18, ${color}08 40%, transparent 70%)`,
-      top, left, filter: 'blur(1px)',
+      background: `radial-gradient(circle, ${color}30, ${color}12 35%, ${color}05 55%, transparent 70%)`,
+      top, left,
+      filter: 'blur(2px)',
+      mixBlendMode: 'screen',
       animation: `${animation} ${duration}s ease-in-out ${delay}s infinite`,
       willChange: 'transform',
+      pointerEvents: 'none',
     }} />
   );
 }
@@ -28,9 +87,9 @@ function DashboardMock() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 40, rotateX: 8 }}
-      animate={{ opacity: 1, y: 0, rotateX: 0 }}
-      transition={{ duration: 1.2, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      initial={{ opacity: 0, y: 60, rotateX: 12, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
+      transition={{ duration: 1.4, delay: 0.7, ease: [0.16, 1, 0.3, 1] }}
       style={{
         perspective: '1200px',
         width: '100%', maxWidth: 780,
@@ -40,18 +99,22 @@ function DashboardMock() {
     >
       {/* Glow behind */}
       <div style={{
-        position: 'absolute', inset: -2,
-        background: `linear-gradient(135deg, ${C.cyan}22, transparent 50%, ${C.gold}15)`,
-        borderRadius: 22, filter: 'blur(20px)', zIndex: 0,
+        position: 'absolute', inset: -4,
+        background: `linear-gradient(135deg, ${C.cyan}28, transparent 40%, ${C.gold}20, transparent 80%)`,
+        borderRadius: 24, filter: 'blur(30px)', zIndex: 0,
       }} />
 
       <div style={{
         position: 'relative', zIndex: 1,
-        background: 'rgba(10,10,13,0.85)',
+        background: 'rgba(10,10,13,0.82)',
         backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)',
         border: '1px solid rgba(255,255,255,0.07)',
         borderRadius: 20, overflow: 'hidden',
-        boxShadow: '0 40px 100px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03)',
+        boxShadow: `
+          0 50px 120px rgba(0,0,0,0.7),
+          0 0 0 1px rgba(255,255,255,0.03),
+          inset 0 1px 0 rgba(255,255,255,0.04)
+        `,
       }}>
         {/* Top bar */}
         <div style={{
@@ -75,9 +138,9 @@ function DashboardMock() {
           {kpis.map((k, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1 + i * 0.12, duration: 0.6 }}
+              initial={{ opacity: 0, y: 20, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 1.2 + i * 0.12, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               style={{
                 background: 'rgba(255,255,255,0.02)',
                 border: '1px solid rgba(255,255,255,0.04)',
@@ -101,12 +164,12 @@ function DashboardMock() {
             {[40, 55, 38, 72, 60, 85, 48, 90, 65, 78, 95, 70, 88, 52, 80, 92].map((h, i) => (
               <motion.div
                 key={i}
-                initial={{ height: 0 }}
-                animate={{ height: `${h}%` }}
-                transition={{ delay: 1.3 + i * 0.05, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: `${h}%`, opacity: 1 }}
+                transition={{ delay: 1.5 + i * 0.04, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                 style={{
                   flex: 1,
-                  background: `linear-gradient(180deg, ${C.cyan}90, ${C.cyan}30)`,
+                  background: `linear-gradient(180deg, ${C.cyan}95, ${C.cyan}25)`,
                   borderRadius: '4px 4px 0 0',
                   minWidth: 0,
                 }}
@@ -119,42 +182,101 @@ function DashboardMock() {
   );
 }
 
+/* ── Magnetic Button Component ─────────────────────────────────────────────── */
+function MagneticButton({ children, to, primary = false }) {
+  const { ref, offset, handleMouseMove, handleMouseLeave } = useMagnetic(0.35);
+
+  return (
+    <Link to={to} style={{ textDecoration: 'none' }}>
+      <motion.div
+        ref={ref}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        animate={{
+          x: offset.x,
+          y: offset.y,
+        }}
+        transition={{ type: 'spring', stiffness: 250, damping: 15, mass: 0.5 }}
+        whileTap={{ scale: 0.96 }}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 10,
+          ...(primary ? {
+            background: `linear-gradient(135deg, ${C.cyan}, ${C.gold})`,
+            borderRadius: 14, padding: '16px 36px',
+            fontWeight: 700, fontSize: 15, color: '#0C0800',
+            boxShadow: `0 8px 32px rgba(232,145,74,0.35)`,
+            animation: 'landing-breathe 4s ease-in-out infinite',
+          } : {
+            background: 'rgba(255,255,255,0.03)',
+            backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 14, padding: '16px 32px',
+            fontWeight: 500, fontSize: 15, color: C.sub,
+          }),
+          fontFamily: FB, cursor: 'pointer',
+          position: 'relative', overflow: 'hidden',
+          transition: 'box-shadow 0.4s ease',
+        }}
+      >
+        {primary && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)',
+            animation: 'landing-glow-line 3s ease-in-out infinite',
+          }} />
+        )}
+        {children}
+      </motion.div>
+    </Link>
+  );
+}
+
 /* ── Hero Section ──────────────────────────────────────────────────────────── */
 export default function HeroSection() {
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-
   return (
     <section style={{
       position: 'relative', minHeight: '100vh',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: '120px 24px 80px', overflow: 'hidden',
+      /* Isolation for blend modes */
+      isolation: 'isolate',
     }}>
-      {/* Orbs */}
-      <Orb size={600} color={C.cyan} top="-10%" left="-5%" delay={0} duration={18} animation="landing-orb-drift" />
-      <Orb size={500} color={C.lav} top="20%" left="70%" delay={2} duration={22} animation="landing-orb-drift-2" />
-      <Orb size={400} color={C.gold} top="60%" left="10%" delay={4} duration={20} animation="landing-orb-drift-3" />
-      <Orb size={350} color={C.sky} top="5%" left="50%" delay={1} duration={16} animation="landing-orb-drift" />
+      {/* Blend-mode Orbs — cinematic light show */}
+      <BlendOrb size={700} color={C.cyan} top="-15%" left="-8%" delay={0} duration={18} animation="landing-orb-drift" />
+      <BlendOrb size={550} color={C.lav} top="15%" left="65%" delay={2} duration={22} animation="landing-orb-drift-2" />
+      <BlendOrb size={500} color={C.gold} top="55%" left="5%" delay={4} duration={20} animation="landing-orb-drift-3" />
+      <BlendOrb size={400} color={C.sky} top="0%" left="45%" delay={1} duration={16} animation="landing-orb-drift" />
+      <BlendOrb size={300} color="#DC3C3C" top="40%" left="75%" delay={3} duration={24} animation="landing-orb-drift-3" />
 
-      {/* Grain overlay */}
+      {/* Radial vignette */}
       <div style={{
         position: 'absolute', inset: 0,
-        background: `radial-gradient(ellipse 80% 60% at 50% 40%, transparent 0%, ${C.bg} 100%)`,
+        background: `radial-gradient(ellipse 85% 65% at 50% 40%, transparent 0%, ${C.bg}ee 70%, ${C.bg} 100%)`,
+        pointerEvents: 'none', zIndex: 1,
+      }} />
+
+      {/* Noise texture overlay */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        opacity: 0.03,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+        backgroundSize: '128px 128px',
         pointerEvents: 'none', zIndex: 1,
       }} />
 
       {/* Content */}
-      <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', maxWidth: 800 }}>
+      <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', maxWidth: 840 }}>
         {/* Badge */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 16, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
             background: 'rgba(232,145,74,0.06)',
             border: '1px solid rgba(232,145,74,0.15)',
             borderRadius: 100, padding: '8px 20px 8px 14px',
-            marginBottom: 32, fontSize: 13, fontFamily: FB, color: C.cyan,
+            marginBottom: 36, fontSize: 13, fontFamily: FB, color: C.cyan,
             fontWeight: 500,
           }}
         >
@@ -165,35 +287,28 @@ export default function HeroSection() {
           Üretim Yönetiminde Yeni Nesil
         </motion.div>
 
-        {/* Main heading */}
-        <motion.h1
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-          style={{
-            fontFamily: F, fontSize: 'clamp(36px, 6vw, 72px)', fontWeight: 900,
-            lineHeight: 1.05, letterSpacing: '-0.03em',
-            color: C.text, marginBottom: 24,
-          }}
-        >
-          Siparişten Sevkiyata,{' '}
-          <span style={{
-            backgroundImage: `linear-gradient(135deg, ${C.cyan}, ${C.gold})`,
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          }}>
-            Tek Ekranda
-          </span>{' '}
-          Dijital Atölye
-        </motion.h1>
+        {/* Main heading — Cinematic word-by-word reveal */}
+        <h1 style={{
+          fontFamily: F, fontSize: 'clamp(38px, 6.5vw, 76px)', fontWeight: 900,
+          lineHeight: 1.05, letterSpacing: '-0.035em',
+          color: C.text, marginBottom: 28,
+          perspective: '600px',
+        }}>
+          <CinematicText text="Siparişten Sevkiyata," delay={0.2} />
+          <br />
+          <CinematicText text="Tek Ekranda" delay={0.55} gradient />
+          {' '}
+          <CinematicText text="Dijital Atölye" delay={0.75} />
+        </h1>
 
         {/* Subtitle */}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.8, delay: 1.0, ease: [0.16, 1, 0.3, 1] }}
           style={{
             fontFamily: FB, fontSize: 'clamp(16px, 2vw, 19px)', lineHeight: 1.7,
-            color: C.sub, maxWidth: 560, margin: '0 auto 40px',
+            color: C.sub, maxWidth: 560, margin: '0 auto 44px',
             fontWeight: 400,
           }}
         >
@@ -201,60 +316,22 @@ export default function HeroSection() {
           tüm atölye operasyonlarınız artık tek bir platformda.
         </motion.p>
 
-        {/* CTA Buttons */}
+        {/* CTA Buttons — Magnetic */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.7, delay: 1.15, ease: [0.16, 1, 0.3, 1] }}
           style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}
         >
-          {/* Primary CTA */}
-          <Link to="/register" style={{ textDecoration: 'none' }}>
-            <motion.div
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.98 }}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 10,
-                background: `linear-gradient(135deg, ${C.cyan}, ${C.gold})`,
-                borderRadius: 14, padding: '16px 36px',
-                fontWeight: 700, fontSize: 15, color: '#0C0800',
-                fontFamily: FB, cursor: 'pointer',
-                boxShadow: `0 8px 32px rgba(232,145,74,0.35)`,
-                animation: 'landing-breathe 4s ease-in-out infinite',
-                position: 'relative', overflow: 'hidden',
-              }}
-            >
-              {/* Shimmer line */}
-              <div style={{
-                position: 'absolute', inset: 0,
-                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
-                animation: 'landing-glow-line 3s ease-in-out infinite',
-              }} />
-              <span style={{ position: 'relative', zIndex: 1 }}>Hemen Ücretsiz Başla</span>
-              <ArrowRight size={16} style={{ position: 'relative', zIndex: 1 }} />
-            </motion.div>
-          </Link>
+          <MagneticButton to="/register" primary>
+            <span style={{ position: 'relative', zIndex: 1 }}>Hemen Ücretsiz Başla</span>
+            <ArrowRight size={16} style={{ position: 'relative', zIndex: 1 }} />
+          </MagneticButton>
 
-          {/* Secondary CTA */}
-          <Link to="/login" style={{ textDecoration: 'none' }}>
-            <motion.div
-              whileHover={{ scale: 1.03, background: 'rgba(255,255,255,0.06)' }}
-              whileTap={{ scale: 0.98 }}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 10,
-                background: 'rgba(255,255,255,0.03)',
-                backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 14, padding: '16px 32px',
-                fontWeight: 500, fontSize: 15, color: C.sub,
-                fontFamily: FB, cursor: 'pointer',
-                transition: 'all 0.3s ease',
-              }}
-            >
-              <Play size={14} />
-              <span>Demoyu İncele</span>
-            </motion.div>
-          </Link>
+          <MagneticButton to="/login">
+            <Play size={14} />
+            <span>Demoyu İncele</span>
+          </MagneticButton>
         </motion.div>
       </div>
 

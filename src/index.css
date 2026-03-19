@@ -141,5 +141,11 @@ select option {
   100% { background-position: 200% center; }
 }
 
+/* ── ANIMATED BORDER ROTATION ──────────────────────────────────────────────── */
+@keyframes landing-border-rotate {
+  from { transform: translate(-50%,-50%) rotate(0deg); }
+  to   { transform: translate(-50%,-50%) rotate(360deg); }
+}
+
 /* Landing smooth scroll */
 html { scroll-behavior: smooth; }
