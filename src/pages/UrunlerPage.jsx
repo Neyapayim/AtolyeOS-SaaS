@@ -3,7 +3,7 @@ import { C, F, FB, fmt } from '../config/constants.js';
 import { PageHeader, Btn, Badge, AramaInput } from '../components/index.js';
 import { bomKalemMaliyet } from '../engine/index.js';
 
-export default function UrunlerPage({ data, setModal, setTab, onNewUrun, onEditUrun, onOtomatikKod }) {
+export default function UrunlerPage({ data, setModal, setTab, onNewUrun, onEditUrun, onOtomatikKod, onDetayUrun }) {
   const { urunler = [], hamMaddeler = [], yarimamulList = [], hizmetler = [] } = data || {};
   const [filtre, setFiltre] = useState("");
 
@@ -75,7 +75,7 @@ export default function UrunlerPage({ data, setModal, setTab, onNewUrun, onEditU
                 cursor: "pointer", transition: "all .22s",
                 animation: `fade-up .3s ${i * 0.06}s ease both`,
               }}
-                onClick={() => setModal?.({ type: "duzenleUrunBom", data: u })}>
+                onClick={() => onDetayUrun?.(u)}>
 
                 {/* Ust dekoratif cizgi */}
                 <div style={{ height: 2, background: `linear-gradient(90deg, ${C.cyan}, ${C.cyan}00)` }} />
@@ -157,7 +157,7 @@ export default function UrunlerPage({ data, setModal, setTab, onNewUrun, onEditU
                         background: `${C.mint}12`, border: `1px solid ${C.mint}25`, borderRadius: 7,
                         padding: "5px 11px", fontSize: 11, fontWeight: 600, color: C.mint, cursor: "pointer",
                       }}>BOM Duzenle</button>
-                    <button onClick={e => { e.stopPropagation(); onEditUrun?.(u); }}
+                    <button onClick={e => { e.stopPropagation(); onDetayUrun?.(u); }}
                       style={{
                         background: `${C.cyan}12`, border: `1px solid ${C.cyan}25`, borderRadius: 7,
                         padding: "5px 11px", fontSize: 11, fontWeight: 600, color: C.cyan, cursor: "pointer",

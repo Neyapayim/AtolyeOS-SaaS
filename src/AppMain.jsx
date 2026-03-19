@@ -15,6 +15,7 @@ import {
   DashboardPage, AtolyePage, SiparislerPage, UrunlerPage, StokPage,
   TedarikPage, MusterilerPage, SevkiyatPage, FasonTakipPage,
   IstasyonlarPage, CalisanlarPage, FasonFirmalarPage, AyarlarPage,
+  MaliyetPage,
 } from './pages/index.js';
 import { ModalDispatch } from './modals/index.js';
 
@@ -69,6 +70,11 @@ export default function AppMain() {
   const [modal, setModal] = useState(null);
   const [aktifUE, setAktifUE] = useState(null);
   const [expSiparis, setExpSiparis] = useState(null);
+
+  // Maliyet workspace state'leri (eski app.jsx'ten)
+  const [aktifUrun, setAktifUrun] = useState(null);
+  const [malTab, setMalTab] = useState("ozet");
+  const [malParams, setMalParams] = useStored("malParams", { targetSaleKdvDahil: 0, saleKdv: 10, gelirVergisi: 30 });
 
   useEffect(() => { const t = setTimeout(() => setMounted(true), 80); return () => clearTimeout(t); }, []);
   useEffect(() => {
@@ -159,7 +165,12 @@ export default function AppMain() {
         return <UrunlerPage data={data} setModal={setModal} setTab={setTab}
           onNewUrun={() => setModal({ type: "yeniUrunBom", data: {} })}
           onEditUrun={u => setModal({ type: "duzenleUrunBom", data: u })}
-          onOtomatikKod={() => setModal({ type: "otomatikKod", data: {} })} />;
+          onOtomatikKod={() => setModal({ type: "otomatikKod", data: {} })}
+          onDetayUrun={u => { setAktifUrun(u.id); setTab("maliyet"); setMalTab("ozet"); }} />;
+      case "maliyet":
+        return <MaliyetPage data={data} setters={setters} setTab={setTab} setModal={setModal}
+          aktifUrun={aktifUrun} malTab={malTab} setMalTab={setMalTab}
+          malParams={malParams} setMalParams={setMalParams} />;
       case "stok":
         return <StokPage data={data} setters={setters} setModal={setModal} setTab={setTab}
           onNewHM={() => setModal({ type: "yeniStokKalem", data: { tip: "hammadde" } })}
@@ -317,7 +328,7 @@ export default function AppMain() {
                 textTransform: "uppercase", padding: "0 10px", marginBottom: 4
               }}>{sec.section}</div>
               {sec.items.map(item => {
-                const active = tab === item.id;
+                const active = tab === item.id || (item.id === "urunler" && tab === "maliyet");
                 return (
                   <button key={item.id} className="nav-item" onClick={() => setTab(item.id)} style={{
                     width: "100%", display: "flex", alignItems: "center", gap: 8,

@@ -11,3 +11,4 @@ export { default as IstasyonlarPage } from './IstasyonlarPage.jsx';
 export { default as CalisanlarPage } from './CalisanlarPage.jsx';
 export { default as FasonFirmalarPage } from './FasonFirmalarPage.jsx';
 export { default as AyarlarPage } from './AyarlarPage.jsx';
+export { default as MaliyetPage } from './MaliyetPage.jsx';
