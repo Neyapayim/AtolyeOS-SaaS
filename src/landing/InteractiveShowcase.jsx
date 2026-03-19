@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import {
   ShoppingCart, ClipboardCheck, Factory, Package,
@@ -6,64 +6,28 @@ import {
 } from 'lucide-react';
 import { C, F, FB } from '../config/constants.js';
 
+const GLASS = {
+  border: '1px solid rgba(255,255,255,0.06)',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
+};
+
 const steps = [
-  {
-    icon: ShoppingCart, title: 'Sipariş Alın',
-    desc: 'Müşterinizden gelen siparişi sisteme girin. Çoklu kalem, alt müşteri ve termin desteği.',
-    color: C.cyan,
-    detail: 'Sipariş girişi ile stok analizi otomatik yapılır. Stokta yeterli ürün varsa direkt sevkiyata hazır.',
-  },
-  {
-    icon: ClipboardCheck, title: 'Stok Analizi',
-    desc: 'Sistem, mevcut stoğunuzu kontrol eder. Eksik malzemeleri otomatik hesaplar.',
-    color: '#3E7BD4',
-    detail: 'BOM reçetesi üzerinden rekürsif malzeme patlatma. Her ham madde ve yarı mamül kontrol edilir.',
-  },
-  {
-    icon: Factory, title: 'Üretime Gönder',
-    desc: 'Tek tıkla toplu üretim emirleri oluşturun. Aşamalar, süreler ve sorumlular otomatik atanır.',
-    color: '#3DB88A',
-    detail: 'Kanban tahtasında aşama takibi, canlı zamanlayıcılar ve iş günlüğü ile tam kontrol.',
-  },
-  {
-    icon: Package, title: 'Tedarik Et',
-    desc: 'Eksik malzemeler için tedarik siparişleri oluşturun. Tedarikçi, nakliye ve fason yönetimi.',
-    color: C.gold,
-    detail: 'Toplu, ürün bazlı veya sipariş bazlı görünümlerle tedarik sürecini izleyin.',
-  },
-  {
-    icon: Truck, title: 'Sevk Et',
-    desc: 'Üretim tamamlandığında sevkiyat emri oluşturun. Nakliye ve teslimat takibi.',
-    color: '#D46B2A',
-    detail: 'Stok hareketleri otomatik güncellenir. Fatura ve irsaliye bilgileri kaydedilir.',
-  },
-  {
-    icon: CheckCircle, title: 'Tamamla',
-    desc: 'Sipariş teslim edildi. Maliyet analizi ve kar/marj raporlarınız hazır.',
-    color: '#3DB88A',
-    detail: 'Siparişten teslimata kadar tüm süreç tek ekrandan izlenebilir ve raporlanabilir.',
-  },
+  { icon: ShoppingCart, title: 'Sipariş Alın', desc: 'Müşteri aradı, siparişi sisteme girin. Çoklu kalem, alt müşteri ve termin — hepsi tek formda.', color: C.cyan, detail: 'Sipariş girildiği an stok analizi otomatik çalışır. Stokta varsa direkt sevkiyata hazır; yoksa eksik malzeme listesi çıkar.' },
+  { icon: ClipboardCheck, title: 'Stok Kontrol', desc: 'Sistem her ham madde ve yarı mamülü kontrol eder, eksikleri hesaplar.', color: '#3E7BD4', detail: 'BOM reçetesi üzerinden rekürsif malzeme patlatma. Hangi depoda ne kadar var, neye ne kadar lazım — saniyeler içinde.' },
+  { icon: Factory, title: 'Üretime Gönder', desc: 'Tek tıkla toplu üretim emirleri. Aşamalar, süreler ve sorumlular otomatik atanır.', color: '#3DB88A', detail: 'Kanban tahtasında canlı aşama takibi, iş günlüğü, canlı zamanlayıcılar. Üretim hattınız artık şeffaf.' },
+  { icon: Package, title: 'Tedarik Et', desc: 'Eksik malzeme? Tedarikçiye sipariş, nakliye takibi, otomatik stok girişi.', color: C.gold, detail: 'Toplu, ürün bazlı veya sipariş bazlı 3 farklı görünümle tedarik sürecini komple izleyin.' },
+  { icon: Truck, title: 'Sevk Et', desc: 'Üretim bitti, sevkiyat emri oluşturun. Nakliye ve teslimat takibi dahil.', color: '#D46B2A', detail: 'Stok hareketleri otomatik güncellenir. İrsaliye numarası, fatura bilgisi, nakliyeci — hepsi kayıtta.' },
+  { icon: CheckCircle, title: 'Tamamla', desc: 'Sipariş teslim. Maliyet analizi ve kar/marj raporlarınız hazır.', color: '#3DB88A', detail: 'Siparişten teslimata her adım tek ekrandan izlenip raporlanabilir. "Bu sipariş bize ne kazandırdı?" sorusunun cevabı burada.' },
 ];
 
-/* ── Scroll-Linked SVG Path ────────────────────────────────────────────────── */
+/* ── Scroll-Linked SVG Path ── */
 function ScrollPath({ containerRef }) {
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ['start 80%', 'end 20%'],
-  });
-
-  const pathLength = useTransform(scrollYProgress, [0, 1], [0, 1]);
-  const glowOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [0.2, 0.8, 1]);
+  const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start 80%', 'end 20%'] });
+  const pathLen = useTransform(scrollYProgress, [0, 1], [0, 1]);
+  const glowOp = useTransform(scrollYProgress, [0, 0.5, 1], [0.15, 0.85, 1]);
 
   return (
-    <svg
-      style={{
-        position: 'absolute', left: 39, top: 0,
-        width: 2, height: '100%',
-        overflow: 'visible', zIndex: 0,
-        pointerEvents: 'none',
-      }}
-    >
+    <svg style={{ position: 'absolute', left: 39, top: 0, width: 2, height: '100%', overflow: 'visible', zIndex: 0, pointerEvents: 'none' }}>
       <defs>
         <linearGradient id="goldFlow" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={C.cyan} />
@@ -71,44 +35,21 @@ function ScrollPath({ containerRef }) {
           <stop offset="100%" stopColor={C.cyan} />
         </linearGradient>
         <filter id="pathGlow">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
+          <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b" />
+          <feMerge><feMergeNode in="b" /><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
       </defs>
-
-      {/* Background track */}
+      <motion.line x1="1" y1="0" x2="1" y2="100%" stroke="rgba(255,255,255,0.03)" strokeWidth="2" />
       <motion.line
         x1="1" y1="0" x2="1" y2="100%"
-        stroke="rgba(255,255,255,0.04)"
-        strokeWidth="2"
+        stroke="url(#goldFlow)" strokeWidth="2" filter="url(#pathGlow)"
+        style={{ pathLength: pathLen, opacity: glowOp }} strokeLinecap="round"
       />
-
-      {/* Flowing golden line */}
-      <motion.line
-        x1="1" y1="0" x2="1" y2="100%"
-        stroke="url(#goldFlow)"
-        strokeWidth="2"
-        filter="url(#pathGlow)"
-        style={{
-          pathLength,
-          opacity: glowOpacity,
-        }}
-        strokeLinecap="round"
-      />
-
-      {/* Leading glow dot */}
       <motion.circle
-        cx="1"
-        r="4"
-        fill={C.gold}
-        filter="url(#pathGlow)"
+        cx="1" r="5" fill={C.gold} filter="url(#pathGlow)"
         style={{
           cy: useTransform(scrollYProgress, [0, 1], ['0%', '100%']),
-          opacity: useTransform(scrollYProgress, [0, 0.05, 0.95, 1], [0, 1, 1, 0]),
+          opacity: useTransform(scrollYProgress, [0, 0.04, 0.96, 1], [0, 1, 1, 0]),
         }}
       />
     </svg>
@@ -117,223 +58,157 @@ function ScrollPath({ containerRef }) {
 
 export default function InteractiveShowcase() {
   const [activeStep, setActiveStep] = useState(0);
-  const containerRef = useRef(null);
-  const stepsContainerRef = useRef(null);
+  const stepsRef = useRef(null);
 
   return (
-    <section
-      ref={containerRef}
-      style={{
-        padding: '120px 24px',
-        background: `linear-gradient(180deg, ${C.bg}, ${C.s1} 30%, ${C.s1} 70%, ${C.bg})`,
-        position: 'relative',
-      }}
-    >
-      {/* Background orb */}
+    <section style={{
+      padding: '160px 24px',
+      background: `linear-gradient(180deg, ${C.bg}, ${C.s1} 25%, ${C.s1} 75%, ${C.bg})`,
+      position: 'relative', isolation: 'isolate',
+    }}>
+      {/* Ambient orb */}
       <div style={{
-        position: 'absolute', width: 500, height: 500, borderRadius: '50%',
-        background: `radial-gradient(circle, ${C.cyan}08, transparent 70%)`,
-        top: '20%', left: '60%', pointerEvents: 'none',
-        mixBlendMode: 'screen',
-        animation: 'landing-orb-drift-2 20s ease-in-out infinite',
+        position: 'absolute', width: 550, height: 550, borderRadius: '50%',
+        background: `radial-gradient(circle, ${C.cyan}0C, transparent 65%)`,
+        top: '18%', left: '58%', pointerEvents: 'none', mixBlendMode: 'color-dodge',
+        animation: 'landing-orb-drift-2 22s ease-in-out infinite',
       }} />
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', position: 'relative', zIndex: 1 }}>
-        {/* Section header with cinematic text */}
+      <div style={{ maxWidth: 1140, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+        {/* ── Header ── */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          style={{ textAlign: 'center', marginBottom: 72, perspective: '600px' }}
+          style={{ textAlign: 'center', marginBottom: 88, perspective: '600px' }}
         >
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            style={{
-              fontSize: 12, fontFamily: FB, color: C.cyan,
-              letterSpacing: '2.5px', textTransform: 'uppercase',
-              fontWeight: 600, marginBottom: 16,
-            }}
+            style={{ fontSize: 12, fontFamily: FB, color: C.cyan, letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 20 }}
           >Nasıl Çalışır?</motion.p>
-          <h2 style={{
-            fontFamily: F, fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 900,
-            color: C.text, letterSpacing: '-0.02em', lineHeight: 1.15,
-          }}>
-            {['Siparişten', 'Teslimata,'].map((word, i) => (
+          <h2 style={{ fontFamily: F, fontSize: 'clamp(30px, 4.5vw, 48px)', fontWeight: 900, color: C.text, letterSpacing: '-2px', lineHeight: 1.08 }}>
+            {['Siparişten', 'Teslimata,'].map((w, i) => (
               <span key={i} style={{ display: 'inline-block', overflow: 'hidden', verticalAlign: 'top' }}>
-                <motion.span
-                  initial={{ y: '100%', rotateX: 40, opacity: 0 }}
-                  whileInView={{ y: '0%', rotateX: 0, opacity: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.7, delay: 0.1 + i * 0.07, ease: [0.16, 1, 0.3, 1] }}
-                  style={{ display: 'inline-block', transformOrigin: 'bottom center' }}
-                >{word}</motion.span>
-                {'\u00A0'}
+                <motion.span initial={{ y: '105%', rotateX: 45, opacity: 0 }} whileInView={{ y: '0%', rotateX: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.1 + i * 0.07, ease: [0.16, 1, 0.3, 1] }} style={{ display: 'inline-block', transformOrigin: 'bottom center' }}>{w}</motion.span>{'\u00A0'}
               </span>
             ))}
             <br />
-            {['Kesintisiz', 'Akış'].map((word, i) => (
+            {['Kesintisiz', 'Akış'].map((w, i) => (
               <span key={i} style={{ display: 'inline-block', overflow: 'hidden', verticalAlign: 'top' }}>
-                <motion.span
-                  initial={{ y: '100%', rotateX: 40, opacity: 0 }}
-                  whileInView={{ y: '0%', rotateX: 0, opacity: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.7, delay: 0.3 + i * 0.07, ease: [0.16, 1, 0.3, 1] }}
-                  style={{
-                    display: 'inline-block', transformOrigin: 'bottom center',
-                    backgroundImage: `linear-gradient(135deg, ${C.cyan}, ${C.gold})`,
-                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                  }}
-                >{word}</motion.span>
-                {i === 0 && '\u00A0'}
+                <motion.span initial={{ y: '105%', rotateX: 45, opacity: 0 }} whileInView={{ y: '0%', rotateX: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.3 + i * 0.07, ease: [0.16, 1, 0.3, 1] }} style={{ display: 'inline-block', transformOrigin: 'bottom center', backgroundImage: `linear-gradient(135deg, ${C.cyan}, ${C.gold})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{w}</motion.span>{i === 0 && '\u00A0'}
               </span>
             ))}
           </h2>
         </motion.div>
 
-        {/* Interactive Process */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: '340px 1fr',
-          gap: 48, alignItems: 'start',
-        }}>
-          {/* Left: Step list with scroll-linked SVG line */}
-          <div ref={stepsContainerRef} style={{ display: 'flex', flexDirection: 'column', gap: 4, position: 'relative' }}>
-            {/* SVG path */}
-            <ScrollPath containerRef={stepsContainerRef} />
-
-            {steps.map((step, i) => {
-              const Icon = step.icon;
-              const isActive = activeStep === i;
+        {/* ── Content grid ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: 56, alignItems: 'start' }}>
+          {/* Left: steps with SVG line */}
+          <div ref={stepsRef} style={{ display: 'flex', flexDirection: 'column', gap: 6, position: 'relative' }}>
+            <ScrollPath containerRef={stepsRef} />
+            {steps.map((s, i) => {
+              const Icon = s.icon;
+              const active = activeStep === i;
               return (
-                <motion.div
-                  key={i}
+                <motion.div key={i}
                   initial={{ opacity: 0, x: -20 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: i * 0.08, duration: 0.5 }}
+                  transition={{ delay: i * 0.07, duration: 0.5 }}
                   onClick={() => setActiveStep(i)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 14,
-                    padding: '16px 18px', borderRadius: 14, cursor: 'pointer',
-                    background: isActive ? `${step.color}08` : 'transparent',
-                    border: `1px solid ${isActive ? `${step.color}20` : 'transparent'}`,
-                    transition: 'all 0.3s ease',
-                    position: 'relative', zIndex: 1,
+                    display: 'flex', alignItems: 'center', gap: 16,
+                    padding: '18px 20px', borderRadius: 16, cursor: 'pointer',
+                    background: active ? `${s.color}06` : 'transparent',
+                    border: active ? `1px solid ${s.color}18` : '1px solid transparent',
+                    transition: 'all 0.35s ease', position: 'relative', zIndex: 1,
                   }}
                 >
-                  {/* Spring-bounce icon */}
                   <motion.div
-                    whileHover={{ scale: 1.15 }}
-                    whileTap={{ scale: 0.85 }}
+                    whileHover={{ scale: 1.18 }}
+                    whileTap={{ scale: 0.82 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 12 }}
                     style={{
-                      width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                      background: isActive ? `${step.color}15` : 'rgba(255,255,255,0.03)',
-                      border: `1px solid ${isActive ? `${step.color}30` : 'rgba(255,255,255,0.05)'}`,
+                      width: 42, height: 42, borderRadius: 13, flexShrink: 0,
+                      background: active ? `${s.color}10` : 'rgba(255,255,255,0.025)',
+                      ...GLASS,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      transition: 'background 0.3s, border-color 0.3s',
                     }}
                   >
-                    <Icon size={18} color={isActive ? step.color : C.muted} strokeWidth={1.8} />
+                    <Icon size={18} color={active ? s.color : C.muted} strokeWidth={1.8} />
                   </motion.div>
                   <div>
-                    <div style={{
-                      fontFamily: F, fontSize: 14, fontWeight: 700,
-                      color: isActive ? C.text : C.sub,
-                      transition: 'color 0.3s ease',
-                    }}>{step.title}</div>
-                    <div style={{
-                      fontFamily: FB, fontSize: 11.5, color: C.muted,
-                      lineHeight: 1.4, marginTop: 2,
-                    }}>{step.desc}</div>
+                    <div style={{ fontFamily: F, fontSize: 14, fontWeight: 700, color: active ? C.text : C.sub, letterSpacing: '-0.5px', transition: 'color 0.3s' }}>{s.title}</div>
+                    <div style={{ fontFamily: FB, fontSize: 11.5, color: C.muted, lineHeight: 1.45, marginTop: 3 }}>{s.desc}</div>
                   </div>
                 </motion.div>
               );
             })}
           </div>
 
-          {/* Right: Active step detail */}
+          {/* Right: detail panel */}
           <motion.div
             key={activeStep}
-            initial={{ opacity: 0, y: 24, scale: 0.98 }}
+            initial={{ opacity: 0, y: 28, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
             style={{
-              background: 'rgba(255,255,255,0.02)',
-              backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.05)',
-              borderRadius: 24, padding: '48px 40px',
-              position: 'relative', overflow: 'hidden', minHeight: 400,
+              background: 'rgba(255,255,255,0.018)',
+              backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
+              ...GLASS,
+              borderRadius: 26, padding: '56px 48px',
+              position: 'relative', overflow: 'hidden', minHeight: 420,
               display: 'flex', flexDirection: 'column', justifyContent: 'center',
             }}
           >
-            {/* Glow */}
             <div style={{
-              position: 'absolute', top: -80, right: -80,
-              width: 300, height: 300, borderRadius: '50%',
-              background: `radial-gradient(circle, ${steps[activeStep].color}15, transparent 65%)`,
-              pointerEvents: 'none', mixBlendMode: 'screen',
+              position: 'absolute', top: -100, right: -100,
+              width: 320, height: 320, borderRadius: '50%',
+              background: `radial-gradient(circle, ${steps[activeStep].color}12, transparent 60%)`,
+              pointerEvents: 'none', mixBlendMode: 'color-dodge',
             }} />
 
             <div style={{ position: 'relative', zIndex: 1 }}>
-              {/* Step number */}
               <span style={{
-                fontFamily: F, fontSize: 80, fontWeight: 900,
-                backgroundImage: `linear-gradient(180deg, ${steps[activeStep].color}20, transparent)`,
+                fontFamily: F, fontSize: 88, fontWeight: 900,
+                backgroundImage: `linear-gradient(180deg, ${steps[activeStep].color}18, transparent)`,
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                position: 'absolute', top: -30, right: 0,
-                lineHeight: 1, userSelect: 'none',
+                position: 'absolute', top: -40, right: 0, lineHeight: 1, userSelect: 'none',
+                letterSpacing: '-4px',
               }}>0{activeStep + 1}</span>
 
-              {/* Icon with spring */}
               <motion.div
-                key={`icon-${activeStep}`}
-                initial={{ scale: 0.5, rotate: -10 }}
+                key={`ic-${activeStep}`}
+                initial={{ scale: 0.4, rotate: -12 }}
                 animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 15 }}
-                whileHover={{ scale: 1.1, rotate: 5 }}
+                transition={{ type: 'spring', stiffness: 280, damping: 16 }}
+                whileHover={{ scale: 1.12, rotate: 5 }}
                 style={{
-                  width: 56, height: 56, borderRadius: 16,
-                  background: `${steps[activeStep].color}12`,
-                  border: `1px solid ${steps[activeStep].color}25`,
+                  width: 60, height: 60, borderRadius: 18,
+                  background: `${steps[activeStep].color}0C`,
+                  ...GLASS,
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  marginBottom: 24, cursor: 'pointer',
+                  marginBottom: 28, cursor: 'pointer',
                 }}
               >
-                {(() => {
-                  const Icon = steps[activeStep].icon;
-                  return <Icon size={26} color={steps[activeStep].color} strokeWidth={1.8} />;
-                })()}
+                {(() => { const I = steps[activeStep].icon; return <I size={27} color={steps[activeStep].color} strokeWidth={1.7} />; })()}
               </motion.div>
 
-              {/* Title */}
-              <h3 style={{
-                fontFamily: F, fontSize: 28, fontWeight: 900,
-                color: C.text, marginBottom: 16, letterSpacing: '-0.02em',
-              }}>{steps[activeStep].title}</h3>
+              <h3 style={{ fontFamily: F, fontSize: 30, fontWeight: 900, color: C.text, marginBottom: 18, letterSpacing: '-1.5px' }}>{steps[activeStep].title}</h3>
+              <p style={{ fontFamily: FB, fontSize: 15.5, lineHeight: 1.8, color: C.sub, maxWidth: 480, marginBottom: 36 }}>{steps[activeStep].detail}</p>
 
-              {/* Description */}
-              <p style={{
-                fontFamily: FB, fontSize: 15, lineHeight: 1.8,
-                color: C.sub, maxWidth: 460, marginBottom: 32,
-              }}>{steps[activeStep].detail}</p>
-
-              {/* Progress dots */}
               <div style={{ display: 'flex', gap: 8 }}>
-                {steps.map((s, i) => (
-                  <motion.div
-                    key={i}
-                    onClick={() => setActiveStep(i)}
-                    whileHover={{ scale: 1.3 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                {steps.map((_, i) => (
+                  <motion.div key={i} onClick={() => setActiveStep(i)}
+                    whileHover={{ scale: 1.35 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 14 }}
                     style={{
-                      width: i === activeStep ? 32 : 8, height: 8,
-                      borderRadius: 4, cursor: 'pointer',
-                      background: i === activeStep ? steps[activeStep].color : 'rgba(255,255,255,0.08)',
-                      transition: 'all 0.3s ease',
+                      width: i === activeStep ? 36 : 8, height: 8, borderRadius: 4, cursor: 'pointer',
+                      background: i === activeStep ? steps[activeStep].color : 'rgba(255,255,255,0.06)',
+                      transition: 'width 0.35s ease, background 0.35s ease',
                     }}
                   />
                 ))}
@@ -342,13 +217,7 @@ export default function InteractiveShowcase() {
           </motion.div>
         </div>
 
-        <style>{`
-          @media (max-width: 800px) {
-            section > div > div:last-child {
-              grid-template-columns: 1fr !important;
-            }
-          }
-        `}</style>
+        <style>{`@media (max-width: 800px) { section > div > div:last-child { grid-template-columns: 1fr !important; } }`}</style>
       </div>
     </section>
   );

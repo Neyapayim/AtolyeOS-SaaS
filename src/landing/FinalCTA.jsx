@@ -4,188 +4,91 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Zap } from 'lucide-react';
 import { C, F, FB } from '../config/constants.js';
 
-/* ── Magnetic Button Hook ──────────────────────────────────────────────────── */
-function useMagnetic(strength = 0.35) {
+const GLASS = { border: '1px solid rgba(255,255,255,0.06)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)' };
+
+function useMagnetic(str = 0.4) {
   const ref = useRef(null);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-
-  const handleMouseMove = useCallback((e) => {
-    if (!ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    setOffset({ x: (e.clientX - cx) * strength, y: (e.clientY - cy) * strength });
-  }, [strength]);
-
-  const handleMouseLeave = useCallback(() => setOffset({ x: 0, y: 0 }), []);
-  return { ref, offset, handleMouseMove, handleMouseLeave };
-}
-
-/* ── Cinematic Text ────────────────────────────────────────────────────────── */
-function CinematicWords({ words, gradientWords = [], delay = 0 }) {
-  return (
-    <>
-      {words.map((word, i) => (
-        <span key={i} style={{ display: 'inline-block', overflow: 'hidden', verticalAlign: 'top' }}>
-          <motion.span
-            initial={{ y: '110%', rotateX: 50, opacity: 0 }}
-            whileInView={{ y: '0%', rotateX: 0, opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: delay + i * 0.07, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              display: 'inline-block', transformOrigin: 'bottom center',
-              ...(gradientWords.includes(word) ? {
-                backgroundImage: `linear-gradient(135deg, ${C.cyan}, ${C.gold})`,
-                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-              } : {}),
-            }}
-          >{word}</motion.span>
-          {i < words.length - 1 && '\u00A0'}
-        </span>
-      ))}
-    </>
-  );
+  const [off, setOff] = useState({ x: 0, y: 0 });
+  const onMove = useCallback((e) => { if (!ref.current) return; const r = ref.current.getBoundingClientRect(); setOff({ x: (e.clientX - r.left - r.width / 2) * str, y: (e.clientY - r.top - r.height / 2) * str }); }, [str]);
+  const onLeave = useCallback(() => setOff({ x: 0, y: 0 }), []);
+  return { ref, off, onMove, onLeave };
 }
 
 export default function FinalCTA() {
-  const { ref: btnRef, offset, handleMouseMove, handleMouseLeave } = useMagnetic(0.4);
+  const { ref, off, onMove, onLeave } = useMagnetic(0.4);
 
   return (
-    <section style={{
-      padding: '140px 24px',
-      position: 'relative', overflow: 'hidden',
-      isolation: 'isolate',
-    }}>
-      {/* Blend-mode background orbs */}
-      <div style={{
-        position: 'absolute', width: 700, height: 700, borderRadius: '50%',
-        background: `radial-gradient(circle, ${C.cyan}15, ${C.cyan}05 40%, transparent 65%)`,
-        top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-        pointerEvents: 'none', mixBlendMode: 'screen',
-        animation: 'landing-orb-drift 18s ease-in-out infinite',
-      }} />
-      <div style={{
-        position: 'absolute', width: 500, height: 500, borderRadius: '50%',
-        background: `radial-gradient(circle, ${C.gold}12, transparent 55%)`,
-        top: '25%', left: '15%', pointerEvents: 'none', mixBlendMode: 'screen',
-        animation: 'landing-orb-drift-2 22s ease-in-out infinite',
-      }} />
-      <div style={{
-        position: 'absolute', width: 400, height: 400, borderRadius: '50%',
-        background: `radial-gradient(circle, ${C.lav}10, transparent 55%)`,
-        top: '60%', left: '70%', pointerEvents: 'none', mixBlendMode: 'color-dodge',
-        animation: 'landing-orb-drift-3 20s ease-in-out infinite',
-      }} />
+    <section style={{ padding: '160px 24px', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+      {/* color-dodge orbs */}
+      <div style={{ position: 'absolute', width: 750, height: 750, borderRadius: '50%', background: `radial-gradient(circle, ${C.cyan}14, transparent 60%)`, top: '50%', left: '50%', transform: 'translate(-50%,-50%)', pointerEvents: 'none', mixBlendMode: 'color-dodge', animation: 'landing-orb-drift 20s ease-in-out infinite' }} />
+      <div style={{ position: 'absolute', width: 550, height: 550, borderRadius: '50%', background: `radial-gradient(circle, ${C.gold}10, transparent 55%)`, top: '20%', left: '12%', pointerEvents: 'none', mixBlendMode: 'color-dodge', animation: 'landing-orb-drift-2 24s ease-in-out infinite' }} />
+      <div style={{ position: 'absolute', width: 400, height: 400, borderRadius: '50%', background: `radial-gradient(circle, ${C.lav}0C, transparent 55%)`, top: '55%', left: '72%', pointerEvents: 'none', mixBlendMode: 'color-dodge', animation: 'landing-orb-drift-3 22s ease-in-out infinite' }} />
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-        style={{
-          maxWidth: 720, margin: '0 auto', textAlign: 'center',
-          position: 'relative', zIndex: 1,
-          perspective: '600px',
-        }}
-      >
-        {/* Zap icon with spring bounce */}
+      <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} style={{ maxWidth: 740, margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 1, perspective: '600px' }}>
+        {/* Zap icon — spring bounce */}
         <motion.div
-          initial={{ scale: 0.5, rotate: -15, opacity: 0 }}
+          initial={{ scale: 0.4, rotate: -18, opacity: 0 }}
           whileInView={{ scale: 1, rotate: 0, opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ type: 'spring', stiffness: 300, damping: 15, delay: 0.1 }}
-          whileHover={{ scale: 1.15, rotate: 8 }}
+          transition={{ type: 'spring', stiffness: 280, damping: 14, delay: 0.1 }}
+          whileHover={{ scale: 1.18, rotate: 8 }}
           style={{
-            width: 68, height: 68, borderRadius: 22,
-            background: `linear-gradient(135deg, ${C.cyan}18, ${C.gold}12)`,
-            border: `1px solid ${C.cyan}25`,
+            width: 72, height: 72, borderRadius: 24,
+            background: `linear-gradient(135deg, ${C.cyan}14, ${C.gold}0A)`,
+            ...GLASS,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 36px', cursor: 'pointer',
+            margin: '0 auto 40px', cursor: 'pointer',
           }}
         >
-          <Zap size={30} color={C.cyan} strokeWidth={1.8} />
+          <Zap size={32} color={C.cyan} strokeWidth={1.7} />
         </motion.div>
 
-        {/* Heading — Cinematic */}
-        <h2 style={{
-          fontFamily: F, fontSize: 'clamp(30px, 5vw, 52px)', fontWeight: 900,
-          color: C.text, letterSpacing: '-0.035em', lineHeight: 1.1,
-          marginBottom: 24,
-        }}>
-          <CinematicWords
-            words={['Atölyenizi', 'Bugünden', 'Dijitale', 'Taşıyın']}
-            gradientWords={['Dijitale', 'Taşıyın']}
-            delay={0.15}
-          />
+        {/* Cinematic heading */}
+        <h2 style={{ fontFamily: F, fontSize: 'clamp(32px, 5.5vw, 56px)', fontWeight: 900, color: C.text, letterSpacing: '-2px', lineHeight: 1.08, marginBottom: 28 }}>
+          {['Atölyenizi', 'Bugünden'].map((w, i) => (
+            <span key={i} style={{ display: 'inline-block', overflow: 'hidden', verticalAlign: 'top' }}>
+              <motion.span initial={{ y: '110%', rotateX: 50, opacity: 0 }} whileInView={{ y: '0%', rotateX: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.85, delay: 0.15 + i * 0.07, ease: [0.16, 1, 0.3, 1] }} style={{ display: 'inline-block', transformOrigin: 'bottom center' }}>{w}</motion.span>{'\u00A0'}
+            </span>
+          ))}
+          <br />
+          {['Dijitale', 'Taşıyın'].map((w, i) => (
+            <span key={i} style={{ display: 'inline-block', overflow: 'hidden', verticalAlign: 'top' }}>
+              <motion.span initial={{ y: '110%', rotateX: 50, opacity: 0 }} whileInView={{ y: '0%', rotateX: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.85, delay: 0.35 + i * 0.07, ease: [0.16, 1, 0.3, 1] }} style={{ display: 'inline-block', transformOrigin: 'bottom center', backgroundImage: `linear-gradient(135deg, ${C.cyan}, ${C.gold})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{w}</motion.span>{i === 0 && '\u00A0'}
+            </span>
+          ))}
         </h2>
 
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, delay: 0.6 }}
-          style={{
-            fontFamily: FB, fontSize: 17, lineHeight: 1.7,
-            color: C.sub, maxWidth: 500, margin: '0 auto 48px',
-          }}
-        >
+        <motion.p initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.6, duration: 0.7 }} style={{ fontFamily: FB, fontSize: 18, lineHeight: 1.75, color: C.sub, maxWidth: 520, margin: '0 auto 56px' }}>
           Kurulum yok, kredi kartı yok. 30 saniyede kayıt olun,
-          atölyenizi hemen yönetmeye başlayın.
+          üretim hattınızın kontrolünü elinize alın.
         </motion.p>
 
-        {/* Magnetic CTA Button */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, delay: 0.8 }}
-        >
+        {/* Magnetic CTA */}
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.85, duration: 0.7 }}>
           <Link to="/register" style={{ textDecoration: 'none' }}>
             <motion.div
-              ref={btnRef}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
-              animate={{ x: offset.x, y: offset.y }}
-              transition={{ type: 'spring', stiffness: 250, damping: 15, mass: 0.5 }}
-              whileTap={{ scale: 0.96 }}
+              ref={ref} onMouseMove={onMove} onMouseLeave={onLeave}
+              animate={{ x: off.x, y: off.y }}
+              transition={{ type: 'spring', stiffness: 220, damping: 18, mass: 0.6 }}
+              whileTap={{ scale: 0.95 }}
               style={{
-                display: 'inline-flex', alignItems: 'center', gap: 12,
+                display: 'inline-flex', alignItems: 'center', gap: 14,
                 background: `linear-gradient(135deg, ${C.cyan}, ${C.gold})`,
-                borderRadius: 16, padding: '22px 52px',
-                fontWeight: 700, fontSize: 18, color: '#0C0800',
-                fontFamily: FB, cursor: 'pointer',
-                boxShadow: `
-                  0 14px 50px rgba(232,145,74,0.4),
-                  0 0 100px rgba(232,145,74,0.15),
-                  inset 0 1px 0 rgba(255,255,255,0.2)
-                `,
+                borderRadius: 18, padding: '24px 56px',
+                fontWeight: 700, fontSize: 19, color: '#0C0800', fontFamily: FB, cursor: 'pointer',
+                boxShadow: `0 16px 60px rgba(232,145,74,0.4), 0 0 120px rgba(232,145,74,0.12), inset 0 1px 0 rgba(255,255,255,0.25)`,
                 animation: 'landing-breathe 4s ease-in-out infinite',
                 position: 'relative', overflow: 'hidden',
               }}
             >
-              {/* Shimmer */}
-              <div style={{
-                position: 'absolute', inset: 0,
-                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
-                animation: 'landing-glow-line 3s ease-in-out infinite',
-              }} />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)', animation: 'landing-glow-line 3s ease-in-out infinite' }} />
               <span style={{ position: 'relative', zIndex: 1 }}>Hemen Ücretsiz Başla</span>
-              <ArrowRight size={18} style={{ position: 'relative', zIndex: 1 }} />
+              <ArrowRight size={20} style={{ position: 'relative', zIndex: 1 }} />
             </motion.div>
           </Link>
         </motion.div>
 
-        {/* Trust note */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 1.0, duration: 0.6 }}
-          style={{
-            fontFamily: FB, fontSize: 12, color: C.muted,
-            marginTop: 24,
-          }}
-        >
+        <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 1.1 }} style={{ fontFamily: FB, fontSize: 13, color: C.muted, marginTop: 28 }}>
           Ücretsiz plan ile sınırsız kullanım — Yükseltme isteğe bağlı
         </motion.p>
       </motion.div>

@@ -20,7 +20,7 @@ const partners = [
 export default function TrustedBy() {
   return (
     <section style={{
-      padding: '64px 0',
+      padding: '72px 0',
       borderTop: '1px solid rgba(255,255,255,0.03)',
       borderBottom: '1px solid rgba(255,255,255,0.03)',
       background: `linear-gradient(180deg, ${C.bg}, ${C.s1}, ${C.bg})`,
@@ -32,35 +32,31 @@ export default function TrustedBy() {
         viewport={{ once: true }}
         transition={{ duration: 0.8 }}
         style={{
-          textAlign: 'center', fontSize: 12, fontFamily: FB,
-          color: C.muted, letterSpacing: '2.5px', textTransform: 'uppercase',
-          fontWeight: 600, marginBottom: 36,
+          textAlign: 'center', fontSize: 11, fontFamily: FB,
+          color: C.muted, letterSpacing: '3px', textTransform: 'uppercase',
+          fontWeight: 600, marginBottom: 40,
         }}
       >
-        Her Sektörden Atölye Güveniyor
+        Mobilyadan Metale, Her Sektörden Atölye Güveniyor
       </motion.p>
 
-      {/* Scrolling strip */}
       <div style={{
         display: 'flex', width: 'max-content',
-        animation: 'landing-logo-scroll 30s linear infinite',
+        animation: 'landing-logo-scroll 35s linear infinite',
       }}>
         {partners.map((p, i) => {
           const Icon = p.icon;
           return (
             <div key={i} style={{
               display: 'flex', alignItems: 'center', gap: 10,
-              padding: '0 40px', whiteSpace: 'nowrap',
-              opacity: 0.3, transition: 'opacity 0.3s',
+              padding: '0 44px', whiteSpace: 'nowrap',
+              opacity: 0.25, transition: 'opacity 0.4s ease',
             }}
-            onMouseEnter={e => e.currentTarget.style.opacity = '0.7'}
-            onMouseLeave={e => e.currentTarget.style.opacity = '0.3'}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.65'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '0.25'}
             >
-              <Icon size={20} color={C.sub} strokeWidth={1.5} />
-              <span style={{
-                fontFamily: F, fontSize: 14, fontWeight: 700,
-                color: C.sub, letterSpacing: '0.5px',
-              }}>{p.name}</span>
+              <Icon size={20} color={C.sub} strokeWidth={1.4} />
+              <span style={{ fontFamily: F, fontSize: 14, fontWeight: 700, color: C.sub, letterSpacing: '0.3px' }}>{p.name}</span>
             </div>
           );
         })}
