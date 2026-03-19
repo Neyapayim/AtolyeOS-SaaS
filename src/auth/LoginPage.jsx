@@ -1,14 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from './AuthProvider.jsx';
 import { C, F, FB } from '../config/constants.js';
 
 export default function LoginPage() {
-  const { login, loginWithGoogle, error, isConfigured } = useAuthContext();
+  const { user, login, loginWithGoogle, error, isConfigured } = useAuthContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+
+  // Kullanıcı giriş yaptıysa direkt uygulamaya at
+  useEffect(() => {
+    if (user) {
+      navigate('/app', { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
