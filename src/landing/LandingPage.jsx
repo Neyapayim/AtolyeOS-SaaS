@@ -25,7 +25,9 @@ export default function LandingPage() {
         <FeaturesBento />
       </div>
       <Stats />
-      <InteractiveShowcase />
+      <div id="nasil">
+        <InteractiveShowcase />
+      </div>
       <div id="musteriler">
         <Testimonials />
       </div>

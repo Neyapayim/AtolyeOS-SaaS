@@ -1,259 +1,224 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, AlertTriangle, Factory, ScanBarcode } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import {
+  ShoppingCart, ClipboardCheck, Factory, Package,
+  Truck, CheckCircle
+} from 'lucide-react';
 import { C, F, FB } from '../config/constants.js';
 
-/* ══════════════════════════════════════════════════════════════════════════════
-   STEP DATA
-   ══════════════════════════════════════════════════════════════════════════════ */
-const stepData = [
-  { num: '01', title: '1 Tıkla Siparişi Alın', sub: 'Kanepeler, Masalar ve Teslimat Tarihleri', desc: 'Müşteri aradığında siparişi saniyeler içinde girin. Çoklu kalem, alt müşteri, termin tarihi — hepsi tek formda. Stok analizi otomatik başlar.' },
-  { num: '02', title: 'Malzeme İhtiyacını Anında Görün', sub: 'Stokları Tüketen ve Otomatik Hesaplayan Zeka', desc: 'BOM reçetesi üzerinden rekürsif malzeme patlatma. Hangi ham madde eksik, ne kadar lazım — saniyeler içinde belli.' },
-  { num: '03', title: 'Üretim Hattını Ateşleyin', sub: 'İstasyonlar, CNC, Döşeme ve Operatör Barları', desc: 'Kanban tahtasında aşama takibi, canlı zamanlayıcılar, iş günlüğü. Hangi istasyon ne yapıyor, kim ne kadar çalışmış — hepsi görünür.' },
-  { num: '04', title: 'Barkodu Okutun, Sevk Edin', sub: 'İrsaliye ve Teslimat Raporları', desc: 'Üretim tamamlandı, sevkiyat emri oluşturuldu. Stok hareketleri otomatik güncellenir, kâr marjı raporlanır.' },
+const GLASS = {
+  border: '1px solid rgba(255,255,255,0.06)',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
+};
+
+const steps = [
+  { icon: ShoppingCart, title: 'Sipariş Alın', desc: 'Müşteri aradı, siparişi sisteme girin. Çoklu kalem, alt müşteri ve termin — hepsi tek formda.', color: C.cyan, detail: 'Sipariş girildiği an stok analizi otomatik çalışır. Stokta varsa direkt sevkiyata hazır; yoksa eksik malzeme listesi çıkar.' },
+  { icon: ClipboardCheck, title: 'Stok Kontrol', desc: 'Sistem her ham madde ve yarı mamülü kontrol eder, eksikleri hesaplar.', color: '#3E7BD4', detail: 'BOM reçetesi üzerinden rekürsif malzeme patlatma. Hangi depoda ne kadar var, neye ne kadar lazım — saniyeler içinde.' },
+  { icon: Factory, title: 'Üretime Gönder', desc: 'Tek tıkla toplu üretim emirleri. Aşamalar, süreler ve sorumlular otomatik atanır.', color: '#3DB88A', detail: 'Kanban tahtasında canlı aşama takibi, iş günlüğü, canlı zamanlayıcılar. Üretim hattınız artık şeffaf.' },
+  { icon: Package, title: 'Tedarik Et', desc: 'Eksik malzeme? Tedarikçiye sipariş, nakliye takibi, otomatik stok girişi.', color: C.gold, detail: 'Toplu, ürün bazlı veya sipariş bazlı 3 farklı görünümle tedarik sürecini komple izleyin.' },
+  { icon: Truck, title: 'Sevk Et', desc: 'Üretim bitti, sevkiyat emri oluşturun. Nakliye ve teslimat takibi dahil.', color: '#D46B2A', detail: 'Stok hareketleri otomatik güncellenir. İrsaliye numarası, fatura bilgisi, nakliyeci — hepsi kayıtta.' },
+  { icon: CheckCircle, title: 'Tamamla', desc: 'Sipariş teslim. Maliyet analizi ve kar/marj raporlarınız hazır.', color: '#3DB88A', detail: 'Siparişten teslimata her adım tek ekrandan izlenip raporlanabilir. "Bu sipariş bize ne kazandırdı?" sorusunun cevabı burada.' },
 ];
 
-/* ══════════════════════════════════════════════════════════════════════════════
-   MOCK İÇERİKLERİ
-   ══════════════════════════════════════════════════════════════════════════════ */
-function Mock1() {
-  const rows = [
-    { no: '#1042', m: 'Karaca Mobilya', u: '3\'lü Kanepe Seti', d: 'Onaylandı', c: '#3DB88A' },
-    { no: '#1043', m: 'Demir Metal', u: 'Endüstriyel Raf (x24)', d: 'Bekliyor', c: C.cyan },
-    { no: '#1044', m: 'Yılmaz Atölye', u: 'Yemek Masası Takımı', d: 'Acil', c: '#DC3C3C' },
-    { no: '#1045', m: 'Özkan Tekstil', u: 'Ofis Koltuğu (x40)', d: 'Onaylandı', c: '#3DB88A' },
-    { no: '#1046', m: 'Atlas Dekor', u: 'Sehpa + TV Ünitesi', d: 'Bekliyor', c: C.cyan },
-  ];
+/* ── Scroll-Linked SVG Path ── */
+function ScrollPath({ containerRef }) {
+  const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start 80%', 'end 20%'] });
+  const pathLen = useTransform(scrollYProgress, [0, 1], [0, 1]);
+  const glowOp = useTransform(scrollYProgress, [0, 0.5, 1], [0.15, 0.85, 1]);
+
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-        <ShoppingCart size={15} color={C.cyan} />
-        <span style={{ fontFamily: F, fontSize: 12.5, fontWeight: 700, color: C.text, letterSpacing: '-0.5px' }}>Gelen Siparişler</span>
-        <span style={{ marginLeft: 'auto', fontSize: 9.5, fontFamily: FB, color: C.muted }}>Bugün · 5 yeni</span>
-      </div>
-      <div style={{ borderRadius: 11, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.04)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '58px 1fr 1fr 72px', gap: 6, padding: '7px 12px', background: 'rgba(255,255,255,0.015)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-          {['No', 'Müşteri', 'Ürün', 'Durum'].map(h => <span key={h} style={{ fontSize: 8.5, color: C.muted, fontFamily: FB, fontWeight: 600 }}>{h}</span>)}
-        </div>
-        {rows.map((r, i) => (
-          <div key={i} style={{ display: 'grid', gridTemplateColumns: '58px 1fr 1fr 72px', gap: 6, padding: '9px 12px', alignItems: 'center', borderBottom: i < 4 ? '1px solid rgba(255,255,255,0.02)' : 'none' }}>
-            <span style={{ fontSize: 10.5, fontFamily: F, fontWeight: 700, color: C.sub }}>{r.no}</span>
-            <span style={{ fontSize: 10, fontFamily: FB, color: C.sub }}>{r.m}</span>
-            <span style={{ fontSize: 10, fontFamily: FB, color: C.muted }}>{r.u}</span>
-            <span style={{ fontSize: 8.5, fontFamily: FB, fontWeight: 600, color: r.c, background: `${r.c}12`, borderRadius: 5, padding: '2px 7px', textAlign: 'center' }}>{r.d}</span>
-          </div>
-        ))}
-      </div>
-    </div>
+    <svg style={{ position: 'absolute', left: 39, top: 0, width: 2, height: '100%', overflow: 'visible', zIndex: 0, pointerEvents: 'none' }}>
+      <defs>
+        <linearGradient id="goldFlow" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={C.cyan} />
+          <stop offset="50%" stopColor={C.gold} />
+          <stop offset="100%" stopColor={C.cyan} />
+        </linearGradient>
+        <filter id="pathGlow">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b" />
+          <feMerge><feMergeNode in="b" /><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+      <motion.line x1="1" y1="0" x2="1" y2="100%" stroke="rgba(255,255,255,0.03)" strokeWidth="2" />
+      <motion.line
+        x1="1" y1="0" x2="1" y2="100%"
+        stroke="url(#goldFlow)" strokeWidth="2" filter="url(#pathGlow)"
+        style={{ pathLength: pathLen, opacity: glowOp }} strokeLinecap="round"
+      />
+      <motion.circle
+        cx="1" r="5" fill={C.gold} filter="url(#pathGlow)"
+        style={{
+          cy: useTransform(scrollYProgress, [0, 1], ['0%', '100%']),
+          opacity: useTransform(scrollYProgress, [0, 0.04, 0.96, 1], [0, 1, 1, 0]),
+        }}
+      />
+    </svg>
   );
 }
 
-function Mock2() {
-  const alerts = [
-    { m: 'Sünger 30D (Levha)', stok: '2 adet', iht: '18 adet', acil: true },
-    { m: 'Kumaş Keten Gri', stok: '4.2 mt', iht: '28 mt', acil: true },
-    { m: 'Profil 40x20 HR', stok: '12 boy', iht: '48 boy', acil: false },
-    { m: 'Cila Vernik (Lt)', stok: '3 lt', iht: '8 lt', acil: false },
-  ];
-  return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-        <AlertTriangle size={15} color="#DC3C3C" />
-        <span style={{ fontFamily: F, fontSize: 12.5, fontWeight: 700, color: C.text, letterSpacing: '-0.5px' }}>Stok Uyarıları</span>
-        <span style={{ marginLeft: 'auto', fontSize: 9, fontFamily: FB, background: '#DC3C3C20', color: '#DC3C3C', borderRadius: 5, padding: '2px 7px', fontWeight: 600 }}>4 eksik</span>
-      </div>
-      {alerts.map((a, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 12px', marginBottom: 5, borderRadius: 9, background: a.acil ? 'rgba(220,60,60,0.04)' : 'rgba(255,255,255,0.012)', border: a.acil ? '1px solid rgba(220,60,60,0.1)' : '1px solid rgba(255,255,255,0.03)' }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, fontFamily: FB, fontWeight: 600, color: C.text }}>{a.m}</div>
-            <div style={{ fontSize: 9, fontFamily: FB, color: C.muted, marginTop: 2 }}>Stok: {a.stok} → İhtiyaç: {a.iht}</div>
-          </div>
-          <div style={{ fontSize: 8.5, fontFamily: FB, fontWeight: 600, background: `${C.cyan}15`, color: C.cyan, borderRadius: 6, padding: '4px 10px' }}>Tedarik Et</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function Mock3() {
-  const st = [
-    { n: 'Kesim Masası', o: 'Fatma H.', p: 100, c: '#3DB88A' },
-    { n: 'Döşeme Tezgahı', o: 'Ahmet Usta', p: 62, c: C.cyan },
-    { n: 'Montaj İstasyonu', o: 'Mehmet', p: 35, c: C.gold },
-    { n: 'Statik Boya (Fason)', o: 'Dış Kaynak', p: 80, c: C.lav },
-    { n: 'Paketleme', o: 'Mehmet', p: 0, c: C.muted },
-  ];
-  return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-        <Factory size={15} color={C.cyan} />
-        <span style={{ fontFamily: F, fontSize: 12.5, fontWeight: 700, color: C.text, letterSpacing: '-0.5px' }}>Üretim Hattı — UE #1042</span>
-        <span style={{ marginLeft: 'auto', fontSize: 9.5, fontFamily: FB, color: '#3DB88A' }}>● Aktif</span>
-      </div>
-      {st.map((s, i) => (
-        <div key={i} style={{ marginBottom: 11 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 10.5, fontFamily: FB, fontWeight: 600, color: C.text }}>{s.n}</span>
-            <span style={{ fontSize: 9.5, fontFamily: FB, color: C.muted }}>{s.o} · %{s.p}</span>
-          </div>
-          <div style={{ height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.04)', overflow: 'hidden' }}>
-            <div style={{ width: `${s.p}%`, height: '100%', borderRadius: 3, background: `linear-gradient(90deg, ${s.c}70, ${s.c})` }} />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function Mock4() {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 260, textAlign: 'center' }}>
-      <div style={{ width: 72, height: 72, borderRadius: 22, background: 'linear-gradient(135deg, rgba(61,184,138,0.12), rgba(61,184,138,0.05))', border: '1px solid rgba(61,184,138,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)' }}>
-        <ScanBarcode size={32} color="#3DB88A" strokeWidth={1.5} />
-      </div>
-      <div style={{ fontFamily: F, fontSize: 20, fontWeight: 900, color: '#3DB88A', letterSpacing: '-1px', marginBottom: 6 }}>Teslim Edildi ✓</div>
-      <div style={{ fontFamily: FB, fontSize: 11.5, color: C.sub, marginBottom: 20 }}>Sipariş #1042 · Karaca Mobilya</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, width: '100%', maxWidth: 300 }}>
-        {[{ l: 'İrsaliye', v: '#IRN-4821' }, { l: 'Nakliyeci', v: 'Aras Kargo' }, { l: 'Kâr Marjı', v: '%28.4' }].map((item, i) => (
-          <div key={i} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 9, border: '1px solid rgba(255,255,255,0.04)', padding: '9px 10px' }}>
-            <div style={{ fontSize: 8.5, color: C.muted, fontFamily: FB, marginBottom: 3 }}>{item.l}</div>
-            <div style={{ fontSize: 11.5, color: C.text, fontFamily: F, fontWeight: 700 }}>{item.v}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const mocks = [Mock1, Mock2, Mock3, Mock4];
-
-/* ══════════════════════════════════════════════════════════════════════════════
-   MAIN — Tıklama bazlı tab showcase (useScroll YOK, crash riski SIFIR)
-   Aynı görsel kalite, sıfır risk.
-   ══════════════════════════════════════════════════════════════════════════════ */
 export default function InteractiveShowcase() {
-  const [active, setActive] = useState(0);
-  const ActiveMock = mocks[active];
+  const [activeStep, setActiveStep] = useState(0);
+  const stepsRef = useRef(null);
 
   return (
-    <section id="nasil" style={{
+    <section style={{
       padding: '160px 24px',
       background: `linear-gradient(180deg, ${C.bg}, ${C.s1} 25%, ${C.s1} 75%, ${C.bg})`,
-      position: 'relative',
+      position: 'relative', isolation: 'isolate',
     }}>
-      {/* Ambient */}
-      <div style={{ position: 'absolute', top: '35%', left: '58%', transform: 'translate(-50%,-50%)', width: 550, height: 400, borderRadius: '50%', background: `radial-gradient(ellipse, ${C.cyan}08, transparent 60%)`, pointerEvents: 'none', mixBlendMode: 'color-dodge' }} />
-      <div style={{ position: 'absolute', top: '65%', left: '25%', width: 300, height: 300, borderRadius: '50%', background: `radial-gradient(ellipse, ${C.gold}06, transparent 55%)`, pointerEvents: 'none', mixBlendMode: 'color-dodge' }} />
+      {/* Ambient orb */}
+      <div style={{
+        position: 'absolute', width: 550, height: 550, borderRadius: '50%',
+        background: `radial-gradient(circle, ${C.cyan}0C, transparent 65%)`,
+        top: '18%', left: '58%', pointerEvents: 'none', mixBlendMode: 'color-dodge',
+        animation: 'landing-orb-drift-2 22s ease-in-out infinite',
+      }} />
 
       <div style={{ maxWidth: 1140, margin: '0 auto', position: 'relative', zIndex: 1 }}>
-        {/* Header */}
+        {/* ── Header ── */}
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.7 }}
-          style={{ textAlign: 'center', marginBottom: 80 }}
+          style={{ textAlign: 'center', marginBottom: 88, perspective: '600px' }}
         >
-          <p style={{ fontSize: 12, fontFamily: FB, color: C.cyan, letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 20 }}>Nasıl Çalışır?</p>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            style={{ fontSize: 12, fontFamily: FB, color: C.cyan, letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 20 }}
+          >Nasıl Çalışır?</motion.p>
           <h2 style={{ fontFamily: F, fontSize: 'clamp(30px, 4.5vw, 48px)', fontWeight: 900, color: C.text, letterSpacing: '-2px', lineHeight: 1.08 }}>
-            Siparişten Teslimata,{' '}
-            <span style={{ backgroundImage: `linear-gradient(135deg, ${C.cyan}, ${C.gold})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Kesintisiz Akış</span>
+            {['Siparişten', 'Teslimata,'].map((w, i) => (
+              <span key={i} style={{ display: 'inline-block', overflow: 'hidden', verticalAlign: 'top' }}>
+                <motion.span initial={{ y: '105%', rotateX: 45, opacity: 0 }} whileInView={{ y: '0%', rotateX: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.1 + i * 0.07, ease: [0.16, 1, 0.3, 1] }} style={{ display: 'inline-block', transformOrigin: 'bottom center' }}>{w}</motion.span>{'\u00A0'}
+              </span>
+            ))}
+            <br />
+            {['Kesintisiz', 'Akış'].map((w, i) => (
+              <span key={i} style={{ display: 'inline-block', overflow: 'hidden', verticalAlign: 'top' }}>
+                <motion.span initial={{ y: '105%', rotateX: 45, opacity: 0 }} whileInView={{ y: '0%', rotateX: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.3 + i * 0.07, ease: [0.16, 1, 0.3, 1] }} style={{ display: 'inline-block', transformOrigin: 'bottom center', backgroundImage: `linear-gradient(135deg, ${C.cyan}, ${C.gold})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{w}</motion.span>{i === 0 && '\u00A0'}
+              </span>
+            ))}
           </h2>
         </motion.div>
 
-        {/* Content grid */}
+        {/* ── Content grid ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: 56, alignItems: 'start' }}>
-          {/* SOL: Adım listesi */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {stepData.map((s, i) => {
-              const isActive = active === i;
+          {/* Left: steps with SVG line */}
+          <div ref={stepsRef} style={{ display: 'flex', flexDirection: 'column', gap: 6, position: 'relative' }}>
+            <ScrollPath containerRef={stepsRef} />
+            {steps.map((s, i) => {
+              const Icon = s.icon;
+              const active = activeStep === i;
               return (
-                <motion.button
-                  key={i}
-                  onClick={() => setActive(i)}
-                  whileHover={{ scale: 1.01 }}
+                <motion.div key={i}
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.07, duration: 0.5 }}
+                  onClick={() => setActiveStep(i)}
                   style={{
-                    display: 'flex', alignItems: 'flex-start', gap: 16,
+                    display: 'flex', alignItems: 'center', gap: 16,
                     padding: '18px 20px', borderRadius: 16, cursor: 'pointer',
-                    background: isActive ? `${C.cyan}06` : 'transparent',
-                    border: isActive ? `1px solid ${C.cyan}18` : '1px solid transparent',
-                    transition: 'all 0.3s ease',
-                    textAlign: 'left', width: '100%',
+                    background: active ? `${s.color}06` : 'transparent',
+                    border: active ? `1px solid ${s.color}18` : '1px solid transparent',
+                    transition: 'all 0.35s ease', position: 'relative', zIndex: 1,
                   }}
                 >
-                  <span style={{
-                    fontFamily: F, fontSize: 28, fontWeight: 900,
-                    backgroundImage: isActive ? `linear-gradient(135deg, ${C.cyan}, ${C.gold})` : 'none',
-                    WebkitBackgroundClip: isActive ? 'text' : 'unset',
-                    WebkitTextFillColor: isActive ? 'transparent' : 'unset',
-                    color: isActive ? undefined : C.muted,
-                    letterSpacing: '-1.5px', lineHeight: 1, flexShrink: 0,
-                    transition: 'color 0.3s',
-                  }}>{s.num}</span>
+                  <motion.div
+                    whileHover={{ scale: 1.18 }}
+                    whileTap={{ scale: 0.82 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 12 }}
+                    style={{
+                      width: 42, height: 42, borderRadius: 13, flexShrink: 0,
+                      background: active ? `${s.color}10` : 'rgba(255,255,255,0.025)',
+                      ...GLASS,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    <Icon size={18} color={active ? s.color : C.muted} strokeWidth={1.8} />
+                  </motion.div>
                   <div>
-                    <div style={{
-                      fontFamily: F, fontSize: 15, fontWeight: 800,
-                      color: isActive ? C.text : C.sub,
-                      letterSpacing: '-0.5px', transition: 'color 0.3s',
-                      marginBottom: 4,
-                    }}>{s.title}</div>
-                    <div style={{
-                      fontFamily: FB, fontSize: 11.5, color: C.muted,
-                      lineHeight: 1.5,
-                    }}>{s.desc}</div>
+                    <div style={{ fontFamily: F, fontSize: 14, fontWeight: 700, color: active ? C.text : C.sub, letterSpacing: '-0.5px', transition: 'color 0.3s' }}>{s.title}</div>
+                    <div style={{ fontFamily: FB, fontSize: 11.5, color: C.muted, lineHeight: 1.45, marginTop: 3 }}>{s.desc}</div>
                   </div>
-                </motion.button>
+                </motion.div>
               );
             })}
           </div>
 
-          {/* SAĞ: Cam Ekran + AnimatePresence mock geçişi */}
-          <div style={{ position: 'relative', perspective: '1200px' }}>
-            {/* Glow */}
+          {/* Right: detail panel */}
+          <motion.div
+            key={activeStep}
+            initial={{ opacity: 0, y: 28, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              background: 'rgba(255,255,255,0.018)',
+              backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
+              ...GLASS,
+              borderRadius: 26, padding: '56px 48px',
+              position: 'relative', overflow: 'hidden', minHeight: 420,
+              display: 'flex', flexDirection: 'column', justifyContent: 'center',
+            }}
+          >
             <div style={{
-              position: 'absolute', inset: -8,
-              background: `linear-gradient(135deg, ${C.cyan}15, transparent 40%, ${C.gold}0C, transparent 75%)`,
-              borderRadius: 28, filter: 'blur(30px)', pointerEvents: 'none',
+              position: 'absolute', top: -100, right: -100,
+              width: 320, height: 320, borderRadius: '50%',
+              background: `radial-gradient(circle, ${steps[activeStep].color}12, transparent 60%)`,
+              pointerEvents: 'none', mixBlendMode: 'color-dodge',
             }} />
 
-            {/* Ekran */}
-            <div style={{
-              position: 'relative',
-              background: 'rgba(8,8,11,0.9)',
-              backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)',
-              border: '1px solid rgba(255,255,255,0.06)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 50px 120px rgba(0,0,0,0.6)',
-              borderRadius: 22, overflow: 'hidden',
-            }}>
-              {/* macOS bar */}
-              <div style={{ padding: '11px 16px', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '1px solid rgba(255,255,255,0.04)', background: 'rgba(255,255,255,0.012)' }}>
-                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#DC3C3C', opacity: 0.65 }} />
-                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#FBBF24', opacity: 0.65 }} />
-                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#3DB88A', opacity: 0.65 }} />
-                <span style={{ marginLeft: 10, fontSize: 10, color: C.muted, fontFamily: FB }}>Atölye OS</span>
-              </div>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <span style={{
+                fontFamily: F, fontSize: 88, fontWeight: 900,
+                backgroundImage: `linear-gradient(180deg, ${steps[activeStep].color}18, transparent)`,
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                position: 'absolute', top: -40, right: 0, lineHeight: 1, userSelect: 'none',
+                letterSpacing: '-4px',
+              }}>0{activeStep + 1}</span>
 
-              {/* Mock content with 3D transitions */}
-              <div style={{ padding: '22px 24px', minHeight: 340 }}>
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={active}
-                    initial={{ opacity: 0, x: 60, rotateY: 12, scale: 0.92 }}
-                    animate={{ opacity: 1, x: 0, rotateY: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: -60, rotateY: -12, scale: 0.92 }}
-                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                  >
-                    <ActiveMock />
-                  </motion.div>
-                </AnimatePresence>
+              <motion.div
+                key={`ic-${activeStep}`}
+                initial={{ scale: 0.4, rotate: -12 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 280, damping: 16 }}
+                whileHover={{ scale: 1.12, rotate: 5 }}
+                style={{
+                  width: 60, height: 60, borderRadius: 18,
+                  background: `${steps[activeStep].color}0C`,
+                  ...GLASS,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  marginBottom: 28, cursor: 'pointer',
+                }}
+              >
+                {(() => { const I = steps[activeStep].icon; return <I size={27} color={steps[activeStep].color} strokeWidth={1.7} />; })()}
+              </motion.div>
+
+              <h3 style={{ fontFamily: F, fontSize: 30, fontWeight: 900, color: C.text, marginBottom: 18, letterSpacing: '-1.5px' }}>{steps[activeStep].title}</h3>
+              <p style={{ fontFamily: FB, fontSize: 15.5, lineHeight: 1.8, color: C.sub, maxWidth: 480, marginBottom: 36 }}>{steps[activeStep].detail}</p>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                {steps.map((_, i) => (
+                  <motion.div key={i} onClick={() => setActiveStep(i)}
+                    whileHover={{ scale: 1.35 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 14 }}
+                    style={{
+                      width: i === activeStep ? 36 : 8, height: 8, borderRadius: 4, cursor: 'pointer',
+                      background: i === activeStep ? steps[activeStep].color : 'rgba(255,255,255,0.06)',
+                      transition: 'width 0.35s ease, background 0.35s ease',
+                    }}
+                  />
+                ))}
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
-      </div>
 
-      {/* Responsive */}
-      <style>{`@media(max-width:900px){section>div:last-child>div:last-child{grid-template-columns:1fr!important}}`}</style>
+        <style>{`@media (max-width: 800px) { section > div > div:last-child { grid-template-columns: 1fr !important; } }`}</style>
+      </div>
     </section>
   );
 }
