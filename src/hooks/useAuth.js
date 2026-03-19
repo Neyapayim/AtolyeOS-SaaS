@@ -12,7 +12,7 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [profile, setProfile] = useState(null);       // Firestore users/{uid}
-  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true); // true basla → profil okunana kadar bekle
 
   // Auth state listener
   useEffect(() => {
@@ -31,6 +31,7 @@ export function useAuth() {
   useEffect(() => {
     if (!isConfigured || !user) {
       setProfile(null);
+      setProfileLoading(false); // user yoksa bekletme
       return;
     }
     let cancelled = false;
