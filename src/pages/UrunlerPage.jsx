@@ -23,6 +23,13 @@ export default function UrunlerPage({ data, setModal, setTab, onNewUrun, onEditU
     }, 0);
   };
 
+  /* ── Kart tiklama → Maliyet sayfasina git (MUTLAK) ── */
+  const kartTiklandi = (urun) => {
+    if (typeof onDetayUrun === "function") {
+      onDetayUrun(urun);
+    }
+  };
+
   return (
     <div style={{ animation: "fade-up .35s ease" }}>
       {/* Header */}
@@ -47,7 +54,7 @@ export default function UrunlerPage({ data, setModal, setTab, onNewUrun, onEditU
         {filtrelenmis.length === 0 ? (
           <div style={{
             gridColumn: "1/-1", textAlign: "center", padding: 60, color: C.muted, fontSize: 14,
-            background: C.card, borderRadius: 14, border: `1px solid ${C.border}`,
+            background: C.s2, borderRadius: 14, border: `1px solid ${C.border}`,
           }}>
             {urunler.length === 0 ? (
               <div>
@@ -75,13 +82,13 @@ export default function UrunlerPage({ data, setModal, setTab, onNewUrun, onEditU
                 cursor: "pointer", transition: "all .22s",
                 animation: `fade-up .3s ${i * 0.06}s ease both`,
               }}
-                onClick={() => onDetayUrun?.(u)}>
+                onClick={() => kartTiklandi(u)}>
 
                 {/* Ust dekoratif cizgi */}
                 <div style={{ height: 2, background: `linear-gradient(90deg, ${C.cyan}, ${C.cyan}00)` }} />
 
                 <div style={{ padding: "16px 16px 14px" }}>
-                  {/* Baslik satiri */}
+                  {/* Baslik satiri + sag ustte edit ikonu */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                     <div>
                       <div style={{ fontSize: 10, color: C.muted, marginBottom: 2 }}>
@@ -89,12 +96,26 @@ export default function UrunlerPage({ data, setModal, setTab, onNewUrun, onEditU
                       </div>
                       <div style={{ fontSize: 15, fontWeight: 700, color: C.text, fontFamily: F }}>{u.ad}</div>
                     </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: C.cyan, fontFamily: F }}>
-                        {satisKdvDahil > 0 ? `${fmt(satisKdvDahil)} TL` : "-"}
-                      </div>
-                      <div style={{ fontSize: 10, color: u.aktif !== false ? C.mint : C.muted }}>
-                        {u.aktif !== false ? "● Aktif" : "● Pasif"}
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                      {/* Minik edit ikonu — SADECE bu modal acar */}
+                      <button
+                        onClick={e => { e.stopPropagation(); onEditUrun?.(u); }}
+                        title="Urunu Duzenle / BOM"
+                        style={{
+                          background: "rgba(255,255,255,.05)", border: `1px solid ${C.border}`,
+                          borderRadius: 6, width: 26, height: 26, display: "flex", alignItems: "center",
+                          justifyContent: "center", cursor: "pointer", fontSize: 12, color: C.muted,
+                          transition: "all .15s", flexShrink: 0,
+                        }}>
+                        ✏️
+                      </button>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: C.cyan, fontFamily: F }}>
+                          {satisKdvDahil > 0 ? `${fmt(satisKdvDahil)} TL` : "-"}
+                        </div>
+                        <div style={{ fontSize: 10, color: u.aktif !== false ? C.mint : C.muted }}>
+                          {u.aktif !== false ? "● Aktif" : "● Pasif"}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -145,23 +166,21 @@ export default function UrunlerPage({ data, setModal, setTab, onNewUrun, onEditU
                     </div>
                   )}
 
-                  {/* Aksiyon butonlari */}
-                  <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
-                    <button onClick={e => { e.stopPropagation(); onEditUrun?.(u); }}
-                      style={{
-                        background: "rgba(255,255,255,.05)", border: `1px solid ${C.border}`, borderRadius: 7,
-                        padding: "5px 11px", fontSize: 11, color: C.sub, cursor: "pointer",
-                      }}>Duzenle</button>
-                    <button onClick={e => { e.stopPropagation(); onEditUrun?.(u); }}
-                      style={{
-                        background: `${C.mint}12`, border: `1px solid ${C.mint}25`, borderRadius: 7,
-                        padding: "5px 11px", fontSize: 11, fontWeight: 600, color: C.mint, cursor: "pointer",
-                      }}>BOM Duzenle</button>
-                    <button onClick={e => { e.stopPropagation(); onDetayUrun?.(u); }}
-                      style={{
-                        background: `${C.cyan}12`, border: `1px solid ${C.cyan}25`, borderRadius: 7,
-                        padding: "5px 11px", fontSize: 11, fontWeight: 600, color: C.cyan, cursor: "pointer",
-                      }}>Maliyet &rarr;</button>
+                  {/* Alt kisim: Maliyet detay yonlendirmesi */}
+                  <div style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    paddingTop: 8, borderTop: `1px solid ${C.border}`, marginTop: 4,
+                  }}>
+                    <span style={{ fontSize: 10, color: C.muted }}>
+                      {bomSayi > 0 ? `${bomSayi} kalem BOM` : "BOM tanimlanmamis"}
+                    </span>
+                    <span style={{
+                      fontSize: 11, fontWeight: 600, color: C.cyan,
+                      display: "flex", alignItems: "center", gap: 4,
+                    }}>
+                      Detay & Maliyet
+                      <span style={{ fontSize: 13 }}>&rarr;</span>
+                    </span>
                   </div>
                 </div>
               </div>
