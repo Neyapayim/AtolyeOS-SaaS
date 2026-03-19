@@ -1,7 +1,23 @@
 // ── WORKLOG REPOSITORY ────────────────────────────────────────
 // Aşama bazlı çalışma süresi kayıtları.
+// Katman: localStorage (anlik) + Firestore (async sync)
+
+import { doc, setDoc } from 'firebase/firestore';
+import { db, isConfigured } from '../config/firebase.js';
+import { getFirestoreUid } from '../hooks/useFirestoreStored.js';
 
 const WORKLOG_KEY = "atolye_workLogs";
+
+// Firestore'a async sync
+const syncToCloud = (liste) => {
+  if (!isConfigured || !db) return;
+  const uid = getFirestoreUid();
+  if (!uid) return;
+  setDoc(doc(db, "users", uid, "data", "workLogs"), {
+    payload: liste,
+    updatedAt: new Date().toISOString(),
+  }).catch(() => {});
+};
 
 export const workLogRepo = {
   getAll: () => {
@@ -25,6 +41,7 @@ export const workLogRepo = {
     };
     liste.push(log);
     try { localStorage.setItem(WORKLOG_KEY, JSON.stringify(liste)); } catch(e){ if(import.meta.env.DEV) console.warn('[workLog] localStorage yazma hatası:', e?.message); }
+    syncToCloud(liste);
     return log;
   },
   kapat: (ueId, asamaId) => {
@@ -37,6 +54,7 @@ export const workLogRepo = {
     const gerceklesenSure = Math.floor((new Date(bittiAt)-new Date(log.basladiAt))/1000);
     liste[idx] = { ...log, bittiAt, gerceklesenSure, durum:"bitti" };
     try { localStorage.setItem(WORKLOG_KEY, JSON.stringify(liste)); } catch(e){ if(import.meta.env.DEV) console.warn('[workLog] localStorage yazma hatası:', e?.message); }
+    syncToCloud(liste);
     return liste[idx];
   },
   byUE: (ueId) => workLogRepo.getAll().filter(w=>w.uretimEmriId===ueId),

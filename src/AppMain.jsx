@@ -4,7 +4,7 @@ import {
   INIT_SIPARISLER, INIT_HAM_MADDE, INIT_YARI_MAMUL, INIT_HIZMET,
   INIT_URUNLER, INIT_ISTASYONLAR, INIT_CALISANLAR, INIT_FASON,
 } from './config/constants.js';
-import { useStored } from './hooks/useStored.js';
+import { useFirestoreStored as useStored } from './hooks/useFirestoreStored.js';
 import { stokHareketiRepo } from './repositories/stokHareketiRepo.js';
 import { workLogRepo } from './repositories/workLogRepo.js';
 import {
