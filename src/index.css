@@ -65,29 +65,48 @@ body { background: var(--bg-main, #060608); color: var(--text-main, #ffffff); fo
   color-scheme: light;
 }
 
-/* ── AÇIK TEMA GLOBAL OVERRIDES ────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   AÇIK TEMA — KAPSAMLI OVERRIDES (Parasut + Nordic)
+   Her satir kasitli. Amator hissiyat birakma.
+   ══════════════════════════════════════════════════════════════ */
 
-/* Card hover */
-[data-theme="parasut"] .card:hover,
-[data-theme="nordic-light"] .card:hover {
-  transform: translateY(-2px) !important;
-  border-color: var(--border-color) !important;
-  box-shadow: var(--shadow-card) !important;
+/* ── 1. AMBIENT ISIMALAR: TAMAMEN GIZLE ──────────────────────── */
+[data-theme="parasut"] .ambient-orbs,
+[data-theme="nordic-light"] .ambient-orbs {
+  display: none !important;
 }
 
-/* Modal */
+/* ── 2. KARTLAR: Beyaz zemin + keskin kenarlik + hafif golge ──── */
+[data-theme="parasut"] .card,
+[data-theme="nordic-light"] .card {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+[data-theme="parasut"] .card:hover,
+[data-theme="nordic-light"] .card:hover {
+  transform: translateY(-1px) !important;
+  border-color: var(--border-color) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,.08) !important;
+}
+
+/* ── 3. MODAL + OVERLAY ──────────────────────────────────────── */
 [data-theme="parasut"] .overlay,
 [data-theme="nordic-light"] .overlay {
   background: var(--overlay-bg) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
 }
 [data-theme="parasut"] .modal,
 [data-theme="nordic-light"] .modal {
   background: var(--modal-bg) !important;
-  border-color: var(--border-color) !important;
+  border: 1px solid var(--border-color) !important;
   box-shadow: var(--shadow-modal) !important;
 }
 
-/* Inputs */
+/* ── 4. INPUT / TEXTAREA / SELECT ────────────────────────────── */
 [data-theme="parasut"] input,
 [data-theme="parasut"] textarea,
 [data-theme="parasut"] select,
@@ -95,6 +114,8 @@ body { background: var(--bg-main, #060608); color: var(--text-main, #ffffff); fo
 [data-theme="nordic-light"] textarea,
 [data-theme="nordic-light"] select {
   color: var(--text-main) !important;
+  background: var(--input-bg) !important;
+  border-color: var(--border-color) !important;
 }
 [data-theme="parasut"] input::placeholder,
 [data-theme="parasut"] textarea::placeholder,
@@ -107,61 +128,83 @@ body { background: var(--bg-main, #060608); color: var(--text-main, #ffffff); fo
   background: var(--select-bg) !important;
   color: var(--text-main) !important;
 }
-
-/* Input focus */
 [data-theme="parasut"] .inp:focus,
 [data-theme="nordic-light"] .inp:focus {
   border-color: var(--accent-primary) !important;
-  background: rgba(0,0,0,.02) !important;
+  background: var(--bg-card) !important;
+  box-shadow: 0 0 0 3px rgba(0,0,0,.04) !important;
+}
+[data-theme="parasut"] .inp-name:hover,
+[data-theme="nordic-light"] .inp-name:hover {
+  border-color: var(--border-color) !important;
+}
+[data-theme="parasut"] .inp-name:focus,
+[data-theme="nordic-light"] .inp-name:focus {
+  border-color: var(--accent-primary) !important;
 }
 
-/* Nav item hover */
+/* ── 5. SIDEBAR NAV ITEM HOVER (Koyu sidebar uzerinde) ───────── */
 [data-theme="parasut"] .nav-item:hover,
 [data-theme="nordic-light"] .nav-item:hover {
   background: rgba(255,255,255,0.08) !important;
   color: #ffffff !important;
+  border-left-color: rgba(255,255,255,0.4) !important;
 }
 
-/* Scrollbar */
-[data-theme="parasut"] ::-webkit-scrollbar-thumb,
-[data-theme="nordic-light"] ::-webkit-scrollbar-thumb {
-  background: rgba(0,0,0,.12) !important;
-}
-
-/* Primary button */
+/* ── 6. BUTONLAR ─────────────────────────────────────────────── */
 [data-theme="parasut"] .btn-p,
 [data-theme="nordic-light"] .btn-p {
   color: #ffffff !important;
 }
 [data-theme="parasut"] .btn-p:hover,
 [data-theme="nordic-light"] .btn-p:hover {
-  box-shadow: 0 6px 20px rgba(0,0,0,.15) !important;
+  box-shadow: 0 4px 14px rgba(0,0,0,.12) !important;
 }
-
-/* Ghost button */
 [data-theme="parasut"] .btn-g,
 [data-theme="nordic-light"] .btn-g {
-  background: rgba(0,0,0,.04) !important;
-  border-color: var(--border-color) !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
   color: var(--text-muted) !important;
+  backdrop-filter: none !important;
 }
 [data-theme="parasut"] .btn-g:hover,
 [data-theme="nordic-light"] .btn-g:hover {
-  background: rgba(0,0,0,.07) !important;
+  background: rgba(0,0,0,.04) !important;
   border-color: var(--border-color) !important;
 }
 
-/* Tab button */
+/* ── 7. TAB BUTONLARI ────────────────────────────────────────── */
 [data-theme="parasut"] .tab-b:hover,
 [data-theme="nordic-light"] .tab-b:hover {
   background: rgba(0,0,0,.04) !important;
   color: var(--text-main) !important;
 }
 
-/* Ambient orbs — hide on light themes */
-[data-theme="parasut"] .ambient-orbs,
-[data-theme="nordic-light"] .ambient-orbs {
-  display: none !important;
+/* ── 8. SCROLLBAR ────────────────────────────────────────────── */
+[data-theme="parasut"] ::-webkit-scrollbar-thumb,
+[data-theme="nordic-light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,.1) !important;
+}
+
+/* ── 9. SATIR ISLEMLERI (delete/add row) ─────────────────────── */
+[data-theme="parasut"] .add-row:hover,
+[data-theme="nordic-light"] .add-row:hover {
+  background: rgba(0,0,0,.03) !important;
+  border-color: var(--border-color) !important;
+  color: var(--accent-primary) !important;
+}
+
+/* ── 10. GENEL INLINE STYLE OVERRIDE'LAR ─────────────────────── */
+/* rgba(255,255,255,0.0x) arka planlar acik temada gorunmez.
+   Bu catch-all kural icbuyuk kutucularin bg'sini duzeltir. */
+[data-theme="parasut"] [style*="rgba(255,255,255,0.0"],
+[data-theme="nordic-light"] [style*="rgba(255,255,255,0.0"] {
+  background-color: var(--bg-card) !important;
+}
+/* rgba(255,255,255,0.02) - cok kullanilan ince bg */
+[data-theme="parasut"] [style*="rgba(255,255,255, 0.02"],
+[data-theme="nordic-light"] [style*="rgba(255,255,255, 0.02"] {
+  background-color: var(--bg-card) !important;
 }
 
 @keyframes fade-up   { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
@@ -206,7 +249,7 @@ select option {
   border-left-color: rgba(232,145,74,0.5) !important;
 }
 
-.card:hover {
+[data-theme="dark"] .card:hover, :root:not([data-theme]) .card:hover {
   transform: translateY(-2px) !important;
   border-color: rgba(255,255,255,0.1) !important;
   box-shadow: 0 24px 64px rgba(0,0,0,.7), 0 0 0 1px rgba(232,145,74,0.08) !important;
