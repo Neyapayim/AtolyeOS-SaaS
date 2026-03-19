@@ -9,11 +9,6 @@ import Testimonials from './Testimonials.jsx';
 import FinalCTA from './FinalCTA.jsx';
 import Footer from './Footer.jsx';
 
-/*
-  ÖNEMLİ: Ana wrapper'da overflowX: 'hidden' KULLANILMIYOR.
-  Bu, useScroll'un window scroll'unu doğru okumasını sağlar.
-  Taşan bölümler (orbs vb.) kendi section overflow:hidden'larıyla kontrol edilir.
-*/
 export default function LandingPage() {
   return (
     <div style={{
@@ -21,26 +16,20 @@ export default function LandingPage() {
       background: C.bg,
       color: C.text,
       fontFamily: FB,
+      overflowX: 'hidden',
     }}>
       <Navbar />
-      <div style={{ overflowX: 'hidden' }}>
-        <HeroSection />
-        <TrustedBy />
-      </div>
-      <div id="ozellikler" style={{ overflowX: 'hidden' }}>
+      <HeroSection />
+      <TrustedBy />
+      <div id="ozellikler">
         <FeaturesBento />
       </div>
-      <div style={{ overflowX: 'hidden' }}>
-        <Stats />
-      </div>
-      {/* InteractiveShowcase: 400vh section, id="nasil" kendi içinde, wrapper yok */}
+      <Stats />
       <InteractiveShowcase />
-      <div id="musteriler" style={{ overflowX: 'hidden' }}>
+      <div id="musteriler">
         <Testimonials />
       </div>
-      <div style={{ overflowX: 'hidden' }}>
-        <FinalCTA />
-      </div>
+      <FinalCTA />
       <Footer />
     </div>
   );

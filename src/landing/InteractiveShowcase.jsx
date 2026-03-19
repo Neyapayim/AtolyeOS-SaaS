@@ -1,91 +1,17 @@
-import { useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, AlertTriangle, Factory, ScanBarcode } from 'lucide-react';
 import { C, F, FB } from '../config/constants.js';
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   SCROLL RANGES — strictly increasing, no duplicates
+   STEP DATA
    ══════════════════════════════════════════════════════════════════════════════ */
-const T = [
-  [-0.01, 0.001, 0.20, 0.23],
-  [0.20,  0.23,  0.45, 0.48],
-  [0.45,  0.48,  0.70, 0.73],
-  [0.70,  0.73,  1.50, 1.51],
+const stepData = [
+  { num: '01', title: '1 Tıkla Siparişi Alın', sub: 'Kanepeler, Masalar ve Teslimat Tarihleri', desc: 'Müşteri aradığında siparişi saniyeler içinde girin. Çoklu kalem, alt müşteri, termin tarihi — hepsi tek formda. Stok analizi otomatik başlar.' },
+  { num: '02', title: 'Malzeme İhtiyacını Anında Görün', sub: 'Stokları Tüketen ve Otomatik Hesaplayan Zeka', desc: 'BOM reçetesi üzerinden rekürsif malzeme patlatma. Hangi ham madde eksik, ne kadar lazım — saniyeler içinde belli.' },
+  { num: '03', title: 'Üretim Hattını Ateşleyin', sub: 'İstasyonlar, CNC, Döşeme ve Operatör Barları', desc: 'Kanban tahtasında aşama takibi, canlı zamanlayıcılar, iş günlüğü. Hangi istasyon ne yapıyor, kim ne kadar çalışmış — hepsi görünür.' },
+  { num: '04', title: 'Barkodu Okutun, Sevk Edin', sub: 'İrsaliye ve Teslimat Raporları', desc: 'Üretim tamamlandı, sevkiyat emri oluşturuldu. Stok hareketleri otomatik güncellenir, kâr marjı raporlanır.' },
 ];
-
-/* ══════════════════════════════════════════════════════════════════════════════
-   SOL: Yazı paneli — useTransform hook'ları component body'de çağrılır
-   ══════════════════════════════════════════════════════════════════════════════ */
-function StepText({ step, index, progress }) {
-  const [a, b, c, d] = T[index];
-  const startOpacity = index === 0 ? 1 : 0;
-  const startY = index === 0 ? 0 : 40;
-
-  // Hook'lar component body'de — JSX style içinde DEĞİL
-  const opacity = useTransform(progress, [a, b, c, d], [startOpacity, 1, 1, 0]);
-  const y = useTransform(progress, [a, b, c, d], [startY, 0, 0, -40]);
-
-  return (
-    <motion.div style={{
-      position: 'absolute', inset: 0,
-      display: 'flex', flexDirection: 'column', justifyContent: 'center',
-      opacity, y,
-      willChange: 'transform, opacity',
-      pointerEvents: 'none',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, marginBottom: 12 }}>
-        <span style={{
-          fontFamily: F, fontSize: 40, fontWeight: 900,
-          backgroundImage: `linear-gradient(135deg, ${C.cyan}, ${C.gold})`,
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          letterSpacing: '-2px', lineHeight: 1,
-        }}>{step.num}</span>
-        <h3 style={{
-          fontFamily: F, fontSize: 'clamp(22px, 3vw, 30px)', fontWeight: 900,
-          color: C.text, letterSpacing: '-1.5px', lineHeight: 1.1,
-        }}>{step.title}</h3>
-      </div>
-      <p style={{
-        fontFamily: FB, fontSize: 12, fontWeight: 600,
-        color: C.cyan, letterSpacing: '0.5px', marginBottom: 12,
-        textTransform: 'uppercase',
-      }}>{step.sub}</p>
-      <p style={{
-        fontFamily: FB, fontSize: 15, lineHeight: 1.8,
-        color: C.sub, maxWidth: 400,
-      }}>{step.desc}</p>
-    </motion.div>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════════════
-   SAĞ: 3D Mock panel — useTransform hook'ları component body'de çağrılır
-   ══════════════════════════════════════════════════════════════════════════════ */
-function MockPanel({ index, progress, children }) {
-  const [a, b, c, d] = T[index];
-  const startOpacity = index === 0 ? 1 : 0;
-  const startX = index === 0 ? '0%' : '100%';
-  const startRotateY = index === 0 ? 0 : 18;
-  const startScale = index === 0 ? 1 : 0.88;
-
-  // Hook'lar component body'de
-  const opacity = useTransform(progress, [a, b, c, d], [startOpacity, 1, 1, 0]);
-  const x = useTransform(progress, [a, b, c, d], [startX, '0%', '0%', '-100%']);
-  const rotateY = useTransform(progress, [a, b, c, d], [startRotateY, 0, 0, -18]);
-  const scale = useTransform(progress, [a, b, c, d], [startScale, 1, 1, 0.88]);
-
-  return (
-    <motion.div style={{
-      position: 'absolute', inset: 0,
-      opacity, x, rotateY, scale,
-      transformOrigin: 'center center',
-      willChange: 'transform, opacity',
-      pointerEvents: 'none',
-    }}>
-      {children}
-    </motion.div>
-  );
-}
 
 /* ══════════════════════════════════════════════════════════════════════════════
    MOCK İÇERİKLERİ
@@ -199,63 +125,98 @@ function Mock4() {
   );
 }
 
-/* ══════════════════════════════════════════════════════════════════════════════
-   STEP DATA
-   ══════════════════════════════════════════════════════════════════════════════ */
-const stepData = [
-  { num: '01', title: '1 Tıkla Siparişi Alın', sub: 'Kanepeler, Masalar ve Teslimat Tarihleri', desc: 'Müşteri aradığında siparişi saniyeler içinde girin. Çoklu kalem, alt müşteri, termin tarihi — hepsi tek formda. Stok analizi otomatik başlar.' },
-  { num: '02', title: 'Malzeme İhtiyacını Anında Görün', sub: 'Stokları Tüketen ve Otomatik Hesaplayan Zeka', desc: 'BOM reçetesi üzerinden rekürsif malzeme patlatma. Hangi ham madde eksik, ne kadar lazım — saniyeler içinde belli.' },
-  { num: '03', title: 'Üretim Hattını Ateşleyin', sub: 'İstasyonlar, CNC, Döşeme ve Operatör Barları', desc: 'Kanban tahtasında aşama takibi, canlı zamanlayıcılar, iş günlüğü. Hangi istasyon ne yapıyor, kim ne kadar çalışmış — hepsi görünür.' },
-  { num: '04', title: 'Barkodu Okutun, Sevk Edin', sub: 'İrsaliye ve Teslimat Raporları', desc: 'Üretim tamamlandı, sevkiyat emri oluşturuldu. Stok hareketleri otomatik güncellenir, kâr marjı raporlanır.' },
-];
+const mocks = [Mock1, Mock2, Mock3, Mock4];
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   MAIN — Sıfır useState. useTransform hook'ları her zaman component body'de.
+   MAIN — Tıklama bazlı tab showcase (useScroll YOK, crash riski SIFIR)
+   Aynı görsel kalite, sıfır risk.
    ══════════════════════════════════════════════════════════════════════════════ */
 export default function InteractiveShowcase() {
-  const ref = useRef(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ['start start', 'end end'],
-  });
+  const [active, setActive] = useState(0);
+  const ActiveMock = mocks[active];
 
   return (
-    <section ref={ref} id="nasil" style={{ height: '400vh', position: 'relative' }}>
-      <div style={{
-        position: 'sticky', top: 0, height: '100vh',
-        display: 'flex', alignItems: 'center',
-        background: C.bg,
-      }}>
-        {/* Ambient */}
-        <div style={{ position: 'absolute', top: '35%', left: '58%', transform: 'translate(-50%,-50%)', width: 550, height: 400, borderRadius: '50%', background: `radial-gradient(ellipse, ${C.cyan}08, transparent 60%)`, pointerEvents: 'none', mixBlendMode: 'color-dodge' }} />
-        <div style={{ position: 'absolute', top: '65%', left: '25%', width: 300, height: 300, borderRadius: '50%', background: `radial-gradient(ellipse, ${C.gold}06, transparent 55%)`, pointerEvents: 'none', mixBlendMode: 'color-dodge' }} />
+    <section id="nasil" style={{
+      padding: '160px 24px',
+      background: `linear-gradient(180deg, ${C.bg}, ${C.s1} 25%, ${C.s1} 75%, ${C.bg})`,
+      position: 'relative',
+    }}>
+      {/* Ambient */}
+      <div style={{ position: 'absolute', top: '35%', left: '58%', transform: 'translate(-50%,-50%)', width: 550, height: 400, borderRadius: '50%', background: `radial-gradient(ellipse, ${C.cyan}08, transparent 60%)`, pointerEvents: 'none', mixBlendMode: 'color-dodge' }} />
+      <div style={{ position: 'absolute', top: '65%', left: '25%', width: 300, height: 300, borderRadius: '50%', background: `radial-gradient(ellipse, ${C.gold}06, transparent 55%)`, pointerEvents: 'none', mixBlendMode: 'color-dodge' }} />
 
-        <div style={{
-          maxWidth: 1140, width: '100%', margin: '0 auto', padding: '0 24px',
-          display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 56,
-          alignItems: 'center', position: 'relative', zIndex: 1,
-        }}>
-          {/* ═══ SOL: Yazılar ═══ */}
-          <div style={{ position: 'relative', minHeight: 280 }}>
-            <p style={{
-              position: 'absolute', top: -52, left: 0,
-              fontSize: 12, fontFamily: FB, color: C.cyan,
-              letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 600,
-            }}>Nasıl Çalışır?</p>
+      <div style={{ maxWidth: 1140, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          style={{ textAlign: 'center', marginBottom: 80 }}
+        >
+          <p style={{ fontSize: 12, fontFamily: FB, color: C.cyan, letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 20 }}>Nasıl Çalışır?</p>
+          <h2 style={{ fontFamily: F, fontSize: 'clamp(30px, 4.5vw, 48px)', fontWeight: 900, color: C.text, letterSpacing: '-2px', lineHeight: 1.08 }}>
+            Siparişten Teslimata,{' '}
+            <span style={{ backgroundImage: `linear-gradient(135deg, ${C.cyan}, ${C.gold})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Kesintisiz Akış</span>
+          </h2>
+        </motion.div>
 
-            {stepData.map((s, i) => (
-              <StepText key={i} step={s} index={i} progress={scrollYProgress} />
-            ))}
+        {/* Content grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: 56, alignItems: 'start' }}>
+          {/* SOL: Adım listesi */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {stepData.map((s, i) => {
+              const isActive = active === i;
+              return (
+                <motion.button
+                  key={i}
+                  onClick={() => setActive(i)}
+                  whileHover={{ scale: 1.01 }}
+                  style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 16,
+                    padding: '18px 20px', borderRadius: 16, cursor: 'pointer',
+                    background: isActive ? `${C.cyan}06` : 'transparent',
+                    border: isActive ? `1px solid ${C.cyan}18` : '1px solid transparent',
+                    transition: 'all 0.3s ease',
+                    textAlign: 'left', width: '100%',
+                  }}
+                >
+                  <span style={{
+                    fontFamily: F, fontSize: 28, fontWeight: 900,
+                    backgroundImage: isActive ? `linear-gradient(135deg, ${C.cyan}, ${C.gold})` : 'none',
+                    WebkitBackgroundClip: isActive ? 'text' : 'unset',
+                    WebkitTextFillColor: isActive ? 'transparent' : 'unset',
+                    color: isActive ? undefined : C.muted,
+                    letterSpacing: '-1.5px', lineHeight: 1, flexShrink: 0,
+                    transition: 'color 0.3s',
+                  }}>{s.num}</span>
+                  <div>
+                    <div style={{
+                      fontFamily: F, fontSize: 15, fontWeight: 800,
+                      color: isActive ? C.text : C.sub,
+                      letterSpacing: '-0.5px', transition: 'color 0.3s',
+                      marginBottom: 4,
+                    }}>{s.title}</div>
+                    <div style={{
+                      fontFamily: FB, fontSize: 11.5, color: C.muted,
+                      lineHeight: 1.5,
+                    }}>{s.desc}</div>
+                  </div>
+                </motion.button>
+              );
+            })}
           </div>
 
-          {/* ═══ SAĞ: 3D Cam Ekran ═══ */}
+          {/* SAĞ: Cam Ekran + AnimatePresence mock geçişi */}
           <div style={{ position: 'relative', perspective: '1200px' }}>
+            {/* Glow */}
             <div style={{
               position: 'absolute', inset: -8,
               background: `linear-gradient(135deg, ${C.cyan}15, transparent 40%, ${C.gold}0C, transparent 75%)`,
               borderRadius: 28, filter: 'blur(30px)', pointerEvents: 'none',
             }} />
 
+            {/* Ekran */}
             <div style={{
               position: 'relative',
               background: 'rgba(8,8,11,0.9)',
@@ -264,6 +225,7 @@ export default function InteractiveShowcase() {
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 50px 120px rgba(0,0,0,0.6)',
               borderRadius: 22, overflow: 'hidden',
             }}>
+              {/* macOS bar */}
               <div style={{ padding: '11px 16px', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '1px solid rgba(255,255,255,0.04)', background: 'rgba(255,255,255,0.012)' }}>
                 <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#DC3C3C', opacity: 0.65 }} />
                 <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#FBBF24', opacity: 0.65 }} />
@@ -271,16 +233,27 @@ export default function InteractiveShowcase() {
                 <span style={{ marginLeft: 10, fontSize: 10, color: C.muted, fontFamily: FB }}>Atölye OS</span>
               </div>
 
-              <div style={{ position: 'relative', padding: '22px 24px', minHeight: 340, perspective: '800px' }}>
-                <MockPanel index={0} progress={scrollYProgress}><Mock1 /></MockPanel>
-                <MockPanel index={1} progress={scrollYProgress}><Mock2 /></MockPanel>
-                <MockPanel index={2} progress={scrollYProgress}><Mock3 /></MockPanel>
-                <MockPanel index={3} progress={scrollYProgress}><Mock4 /></MockPanel>
+              {/* Mock content with 3D transitions */}
+              <div style={{ padding: '22px 24px', minHeight: 340 }}>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={active}
+                    initial={{ opacity: 0, x: 60, rotateY: 12, scale: 0.92 }}
+                    animate={{ opacity: 1, x: 0, rotateY: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: -60, rotateY: -12, scale: 0.92 }}
+                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  >
+                    <ActiveMock />
+                  </motion.div>
+                </AnimatePresence>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Responsive */}
+      <style>{`@media(max-width:900px){section>div:last-child>div:last-child{grid-template-columns:1fr!important}}`}</style>
     </section>
   );
 }
