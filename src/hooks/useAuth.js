@@ -28,12 +28,25 @@ export function useAuth() {
   }, []);
 
   // Profil yükle (user değişince)
+  // ÖNEMLİ: Auth loading bitene kadar profileLoading'i false yapma
+  // yoksa arada profile=null + profileLoading=false anı oluşur → onboarding'e fırlatır
   useEffect(() => {
-    if (!isConfigured || !user) {
+    if (!isConfigured) {
       setProfile(null);
-      setProfileLoading(false); // user yoksa bekletme
+      setProfileLoading(false);
       return;
     }
+    // Auth henüz yükleniyor → profili de "yükleniyor" olarak bırak
+    if (loading) return;
+
+    // Auth bitti ama user yok → login olmamış
+    if (!user) {
+      setProfile(null);
+      setProfileLoading(false);
+      return;
+    }
+
+    // Auth bitti, user var → Firestore'dan profil oku
     let cancelled = false;
     setProfileLoading(true);
     getDoc(doc(db, "users", user.uid))
@@ -43,7 +56,7 @@ export function useAuth() {
       .catch(() => { if (!cancelled) setProfile(null); })
       .finally(() => { if (!cancelled) setProfileLoading(false); });
     return () => { cancelled = true; };
-  }, [user?.uid]);
+  }, [user?.uid, loading]);
 
   const login = async (email, password) => {
     if (!isConfigured) { setError("Firebase yapılandırılmamış"); return; }
