@@ -1,0 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Inter:wght@300;400;500;600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { background: #060608; font-family: 'Inter', sans-serif; }
+
+@keyframes fade-up   { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fade-in   { from{opacity:0} to{opacity:1} }
+@keyframes row-in    { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:translateX(0)} }
+@keyframes bar-in    { from{width:0} }
+@keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.75)} }
+@keyframes blink     { 0%,100%{opacity:1} 50%{opacity:.1} }
+@keyframes float     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+@keyframes spin      { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes orb1      { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,-28px) scale(1.06)} }
+@keyframes orb2      { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-28px,20px) scale(.95)} }
+@keyframes orb3      { 0%,100%{transform:translate(0,0)} 33%{transform:translate(20px,30px)} 66%{transform:translate(-15px,-10px)} }
+@keyframes pulse-ring {
+  0%,100%{box-shadow:0 0 0 0 currentColor,0 0 0 3px currentColor;opacity:1}
+  50%{box-shadow:0 0 0 5px currentColor,0 0 0 10px transparent;opacity:.75}
+}
+@keyframes slide-in  { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
+@keyframes modal-in  { from{opacity:0;transform:scale(.94) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
+@keyframes ember-flicker {
+  0%,100%{opacity:.55} 25%{opacity:.8} 50%{opacity:.45} 75%{opacity:.7}
+}
+
+input, textarea, select {
+  font-family: 'Inter', sans-serif;
+  color: #EDE8DF;
+  background: transparent;
+}
+input::placeholder, textarea::placeholder { color: rgba(237,232,223,0.18); }
+input:focus, textarea:focus, select:focus { outline: none; }
+input[type="number"] { -moz-appearance:textfield; appearance:textfield; }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance:none; }
+select option {
+  background: #10141E;
+  color: #EDE8DF;
+}
+
+.nav-item:hover {
+  background: rgba(230,130,50,0.06) !important;
+  color: #E8914A !important;
+  border-left-color: rgba(232,145,74,0.5) !important;
+}
+
+.card:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+  box-shadow: 0 24px 64px rgba(0,0,0,.7), 0 0 0 1px rgba(232,145,74,0.08) !important;
+}
+
+.inp:focus {
+  border-color: rgba(232,145,74,.4) !important;
+  background: rgba(232,145,74,.025) !important;
+}
+.inp-name:hover { border-color: rgba(255,255,255,.09) !important; }
+.inp-name:focus { border-color: rgba(232,145,74,.35) !important; }
+
+.del-row { opacity:0; transition:opacity .12s; }
+.row-wrap:hover .del-row { opacity:1; }
+.del-row:hover { background:rgba(220,60,60,.15) !important; color:#DC3C3C !important; }
+.add-row:hover { background:rgba(232,145,74,.07) !important; border-color:rgba(232,145,74,.28) !important; color:#E8914A !important; }
+
+.btn-p:hover  { filter:brightness(1.08); transform:translateY(-1px); box-shadow:0 10px 28px rgba(200,100,30,.35) !important; }
+.btn-g:hover  { background:rgba(255,255,255,.055) !important; border-color:rgba(255,255,255,.12) !important; }
+.tab-b:hover  { background:rgba(232,145,74,.05) !important; color:rgba(237,232,223,.7) !important; }
+.stage-node:hover .tt { opacity:1 !important; transform:translateX(-50%) translateY(0) !important; }
+.cat-hdr:hover { opacity:.85; }
+.pill-btn:hover { filter:brightness(1.07); }
+
+.overlay {
+  position:fixed; inset:0; z-index:200;
+  background: rgba(0,0,0,.82);
+  display:flex; align-items:center; justify-content:center;
+  animation:fade-in .18s ease;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.modal {
+  background: rgba(10,10,13,0.96);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 18px;
+  padding: 28px;
+  min-width: 440px; max-width: 560px; width: 100%;
+  animation: modal-in .2s ease;
+  box-shadow: 0 40px 100px rgba(0,0,0,.8),
+              0 0 0 1px rgba(232,145,74,.05),
+              inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+::-webkit-scrollbar { width:2px; height:2px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(232,145,74,.18); border-radius:2px; }

@@ -1,0 +1,13 @@
+export { default as DashboardPage } from './DashboardPage.jsx';
+export { default as AtolyePage } from './AtolyePage.jsx';
+export { default as SiparislerPage } from './SiparislerPage.jsx';
+export { default as UrunlerPage } from './UrunlerPage.jsx';
+export { default as StokPage } from './StokPage.jsx';
+export { default as TedarikPage } from './TedarikPage.jsx';
+export { default as MusterilerPage } from './MusterilerPage.jsx';
+export { default as SevkiyatPage } from './SevkiyatPage.jsx';
+export { default as FasonTakipPage } from './FasonTakipPage.jsx';
+export { default as IstasyonlarPage } from './IstasyonlarPage.jsx';
+export { default as CalisanlarPage } from './CalisanlarPage.jsx';
+export { default as FasonFirmalarPage } from './FasonFirmalarPage.jsx';
+export { default as AyarlarPage } from './AyarlarPage.jsx';
