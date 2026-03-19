@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { C, F, FB, uid } from './config/constants.js';
+import { THEME_LIST } from './config/themes.js';
+import { useTheme } from './hooks/useTheme.js';
 import {
   INIT_SIPARISLER, INIT_HAM_MADDE, INIT_YARI_MAMUL, INIT_HIZMET,
   INIT_URUNLER, INIT_ISTASYONLAR, INIT_CALISANLAR, INIT_FASON,
@@ -46,6 +48,7 @@ const NAV_ITEMS = [
 ];
 
 export default function AppMain() {
+  const { themeId, switchTheme } = useTheme();
   const [tab, setTab] = useState("dashboard");
   const [mounted, setMounted] = useState(false);
   const [time, setTime] = useState(new Date());
@@ -243,17 +246,17 @@ export default function AppMain() {
     }}>
       {/* Ambient Background */}
       <div style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" }}>
-        <div style={{ position: "absolute", inset: 0, background: "#060608" }} />
+        <div style={{ position: "absolute", inset: 0, background: C.bg }} />
         <div style={{
           position: "absolute", width: 800, height: 320, borderRadius: "50%",
           bottom: "-8%", left: "50%", transform: "translateX(-50%)",
-          background: "radial-gradient(ellipse, rgba(180,70,10,0.12) 0%, rgba(120,40,5,0.06) 40%, transparent 70%)",
+          background: `radial-gradient(ellipse, ${C.cyan}1A 0%, ${C.cyan}0A 40%, transparent 70%)`,
           animation: "orb3 35s ease-in-out infinite"
         }} />
         <div style={{
           position: "absolute", width: 600, height: 600, borderRadius: "50%",
           top: "-20%", left: "-10%",
-          background: "radial-gradient(circle, rgba(200,90,20,0.07) 0%, transparent 55%)",
+          background: `radial-gradient(circle, ${C.cyan}12 0%, transparent 55%)`,
           animation: "orb1 28s ease-in-out infinite"
         }} />
         <div style={{
@@ -265,25 +268,25 @@ export default function AppMain() {
       {/* Sidebar */}
       <aside style={{
         width: 236, position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 50,
-        background: "rgba(6,6,8,0.85)",
+        background: `${C.bg}D9`,
         backdropFilter: "blur(28px)", WebkitBackdropFilter: "blur(28px)",
-        borderRight: "1px solid rgba(255,255,255,0.055)",
+        borderRight: `1px solid ${C.border}`,
         display: "flex", flexDirection: "column",
-        boxShadow: "1px 0 0 rgba(255,255,255,0.03), 4px 0 40px rgba(0,0,0,0.6)"
+        boxShadow: `1px 0 0 ${C.border}, 4px 0 40px rgba(0,0,0,0.4)`
       }}>
         {/* Logo */}
-        <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+        <div style={{ padding: "20px 16px 16px", borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
             <div style={{
               width: 38, height: 38, borderRadius: 11,
-              background: "rgba(200,90,20,0.12)", border: "1px solid rgba(200,90,20,0.22)",
+              background: "${C.cyan}1E", border: "1px solid ${C.cyan}38",
               display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
-              boxShadow: "0 0 24px rgba(180,70,10,0.18)", animation: "float 6s ease-in-out infinite"
+              boxShadow: "0 0 24px ${C.cyan}2E", animation: "float 6s ease-in-out infinite"
             }}>🏭</div>
             <div>
               <div style={{
                 fontSize: 15, fontWeight: 800, fontFamily: F, letterSpacing: -.2,
-                backgroundImage: "linear-gradient(135deg, #EDE8DF 40%, #C8872A)",
+                backgroundImage: `linear-gradient(135deg, ${C.text} 40%, ${C.cyan})`,
                 WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"
               }}>Atölye OS</div>
               <div style={{ fontSize: 9, color: C.muted, letterSpacing: 1.8, textTransform: "uppercase", marginTop: 1 }}>
@@ -293,12 +296,12 @@ export default function AppMain() {
           </div>
           {/* Saat */}
           <div style={{
-            background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)",
+            background: `${C.s2}`, border: `1px solid ${C.border}`,
             borderRadius: 10, padding: "9px 13px",
             display: "flex", justifyContent: "space-between", alignItems: "center"
           }}>
             <span style={{ fontSize: 21, fontWeight: 700, color: C.text, fontFamily: F, letterSpacing: 3 }}>
-              {hh}<span style={{ color: "rgba(232,145,74,0.5)", animation: "blink 1s step-end infinite" }}>:</span>{mm2}
+              {hh}<span style={{ color: "${C.cyan}80", animation: "blink 1s step-end infinite" }}>:</span>{mm2}
             </span>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: 10, color: C.cyan, fontWeight: 500, letterSpacing: .3 }}>
@@ -314,7 +317,7 @@ export default function AppMain() {
         {/* KPIs */}
         <div style={{
           padding: "10px 10px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 5,
-          borderBottom: "1px solid rgba(255,255,255,0.045)"
+          borderBottom: `1px solid ${C.border}`
         }}>
           {[
             { n: uretimEmirleri.filter(e => e.durum === "uretimde").length, l: "Üretimde", col: C.cyan },
@@ -336,7 +339,7 @@ export default function AppMain() {
           {NAV_ITEMS.map((sec, si) => (
             <div key={si} style={{ marginBottom: 14 }}>
               <div style={{
-                fontSize: 9, fontWeight: 600, color: "rgba(232,145,74,0.35)", letterSpacing: 2,
+                fontSize: 9, fontWeight: 600, color: "${C.cyan}59", letterSpacing: 2,
                 textTransform: "uppercase", padding: "0 10px", marginBottom: 4
               }}>{sec.section}</div>
               {sec.items.map(item => {
@@ -345,11 +348,11 @@ export default function AppMain() {
                   <button key={item.id} className="nav-item" onClick={() => setTab(item.id)} style={{
                     width: "100%", display: "flex", alignItems: "center", gap: 8,
                     padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer",
-                    background: active ? "rgba(232,145,74,0.07)" : "transparent",
-                    color: active ? C.cyan : "rgba(237,232,223,.35)",
+                    background: active ? "${C.cyan}12" : "transparent",
+                    color: active ? C.cyan : C.muted,
                     fontWeight: active ? 500 : 400, fontSize: 13, marginBottom: 1,
                     transition: "all .18s", textAlign: "left", fontFamily: FB,
-                    borderLeft: `2px solid ${active ? "rgba(232,145,74,0.7)" : "transparent"}`,
+                    borderLeft: `2px solid ${active ? "${C.cyan}B3" : "transparent"}`,
                   }}>
                     <span style={{ fontSize: 12, width: 16, textAlign: "center", flexShrink: 0, opacity: active ? 1 : .6 }}>
                       {item.icon}
@@ -361,6 +364,53 @@ export default function AppMain() {
             </div>
           ))}
         </nav>
+
+        {/* Tema Secici */}
+        <div style={{
+          padding: "10px 12px", borderTop: `1px solid ${C.border}`,
+          flexShrink: 0,
+        }}>
+          <div style={{
+            fontSize: 9, fontWeight: 600, color: C.muted, letterSpacing: 1.5,
+            textTransform: "uppercase", marginBottom: 6, paddingLeft: 2,
+          }}>Tema</div>
+          <div style={{
+            display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 4,
+          }}>
+            {THEME_LIST.map(t => {
+              const isActive = themeId === t.id;
+              return (
+                <button key={t.id} onClick={() => switchTheme(t.id)} title={t.label}
+                  style={{
+                    width: "100%", aspectRatio: "1", borderRadius: 8, border: "none",
+                    cursor: "pointer", position: "relative", overflow: "hidden",
+                    outline: isActive ? `2px solid ${t.colors.cyan}` : "2px solid transparent",
+                    outlineOffset: 1, transition: "all .2s",
+                    background: t.preview[0],
+                  }}>
+                  <div style={{
+                    position: "absolute", bottom: 0, left: 0, right: 0, height: "40%",
+                    background: `linear-gradient(135deg, ${t.preview[1]}, ${t.preview[1]}88)`,
+                    borderRadius: "0 0 6px 6px",
+                  }} />
+                  <span style={{
+                    position: "absolute", top: "50%", left: "50%",
+                    transform: "translate(-50%, -50%)", fontSize: 11,
+                    filter: isActive ? "none" : "grayscale(.5)", opacity: isActive ? 1 : .6,
+                  }}>
+                    {t.icon}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div style={{
+            fontSize: 9, color: C.muted, textAlign: "center", marginTop: 4,
+            opacity: .6,
+          }}>
+            {THEME_LIST.find(t => t.id === themeId)?.label || ""}
+          </div>
+        </div>
       </aside>
 
       {/* Main Content */}
