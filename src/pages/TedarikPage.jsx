@@ -367,7 +367,7 @@ export default function TedarikPage({ data, setters, setModal }) {
                         🏭 {ts.fasonYonlendirme?.fasonFirmaAd || ts.tedarikci || "Fason"}
                       </div>
                       <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>
-                        {(ts.kalemler || []).map(k => k.ad).join(", ")}
+                        {(ts.kalemler || []).map(k => k?.ad || "?").join(", ")}
                         {ts.fasonYonlendirme?.gonderimAt && (
                           <span> · Gönderildi: {new Date(ts.fasonYonlendirme.gonderimAt).toLocaleDateString("tr-TR")}</span>
                         )}

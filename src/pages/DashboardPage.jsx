@@ -241,7 +241,7 @@ export default function DashboardPage({ data, setTab, setters, setModal, aktifUE
                       display: "flex", alignItems: "center", justifyContent: "center",
                       fontSize: 10, fontWeight: 800, color: C.lav, flexShrink: 0
                     }}>
-                      {c.ad.split(" ").map(w => w[0]).join("").slice(0, 2)}
+                      {(c.ad || "?").split(" ").map(w => w[0] || "").join("").slice(0, 2)}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 11, color: C.text, fontWeight: 500 }}>{c.ad}</div>

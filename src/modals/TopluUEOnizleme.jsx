@@ -2,7 +2,7 @@ import { C, F, fmt } from '../config/constants.js';
 import { topluUEOlustur } from '../engine/index.js';
 import { Modal, Btn } from '../components/index.js';
 
-export function TopluUEOnizleme({data, onClose, urunler, hamMaddeler, yarimamulList, hizmetler, uretimEmirleri, siparisler, setUretimEmirleri, setSiparisler}){
+export function TopluUEOnizleme({data, onClose, urunler = [], hamMaddeler = [], yarimamulList = [], hizmetler = [], uretimEmirleri = [], siparisler = [], setUretimEmirleri, setSiparisler}){
   const sp = data;
   const sonuc = topluUEOlustur(sp, {
     urunler,

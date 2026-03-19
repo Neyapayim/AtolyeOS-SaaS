@@ -220,6 +220,52 @@ export function ModalDispatch({ modal, setModal, ...props }) {
     return <FasonModal data={data} onClose={close} setFasonFirmalar={props.setFasonFirmalar} isEdit={type === "fasonDuzenle"} />;
   }
 
+  // ─ Fason İş Emri (Manuel) ─
+  if (type === "yeniFasonIs") {
+    const YeniFasonIsInline = () => {
+      const [form, setForm] = React.useState({
+        firmaId: "", firmaAd: "", aciklama: "", durum: "bekliyor",
+      });
+      const firmalar = props.fasonFirmalar || [];
+      return (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.6)" }}>
+          <div style={{ background: "#151927", borderRadius: 16, padding: 28, minWidth: 380, border: "1px solid rgba(255,255,255,.08)" }}>
+            <h3 style={{ color: "#EDE8DF", marginBottom: 16 }}>Yeni Fason Is Emri</h3>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: "#9CA3AF", marginBottom: 4 }}>Fason Firma</div>
+              <select value={form.firmaId} onChange={e => {
+                const f = firmalar.find(x => x.id === e.target.value);
+                setForm(p => ({ ...p, firmaId: e.target.value, firmaAd: f?.ad || "" }));
+              }}
+                style={{ width: "100%", padding: 10, borderRadius: 8, background: "#0D0D11", color: "#EDE8DF", border: "1px solid rgba(255,255,255,.1)" }}>
+                <option value="">Firma Sec...</option>
+                {firmalar.map(f => <option key={f.id} value={f.id}>{f.ad}</option>)}
+              </select>
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: "#9CA3AF", marginBottom: 4 }}>Aciklama</div>
+              <textarea value={form.aciklama} onChange={e => setForm(p => ({ ...p, aciklama: e.target.value }))}
+                placeholder="Is detayi..."
+                style={{ width: "100%", padding: 10, borderRadius: 8, background: "#0D0D11", color: "#EDE8DF", border: "1px solid rgba(255,255,255,.1)", minHeight: 60 }} />
+            </div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button onClick={close} style={{ padding: "8px 16px", borderRadius: 8, background: "transparent", color: "#9CA3AF", border: "1px solid rgba(255,255,255,.1)", cursor: "pointer" }}>Iptal</button>
+              <button onClick={() => {
+                if (!form.firmaId) return;
+                props.setFasonIsler?.(p => [...(p || []), {
+                  id: uid(), ...form, olusturmaTarihi: new Date().toISOString(),
+                }]);
+                close();
+              }}
+                style={{ padding: "8px 16px", borderRadius: 8, background: "#E8914A", color: "#fff", border: "none", cursor: "pointer", fontWeight: 600 }}>Olustur</button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+    return <YeniFasonIsInline />;
+  }
+
   // ─ Otomatik Kod ─
   if (type === "otomatikKod") {
     return <OtomatikKodModal

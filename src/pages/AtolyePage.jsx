@@ -483,7 +483,7 @@ export default function AtolyePage({ data, setters, setModal, setTab, aktifUE, s
       {calisanDurum.some(c=>c.durum==="aktif") && (
         <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
           {calisanDurum.filter(c=>c.durum==="aktif").map(c=>{
-            const renk = c.aktifIs ? aRenk(c.aktifIs.asama.ad) : C.muted;
+            const renk = c.aktifIs?.asama ? aRenk(c.aktifIs.asama.ad) : C.muted;
             return (
               <div key={c.id} style={{background:c.aktifIs?`${renk}0D`:"rgba(255,255,255,0.02)",
                 border:`1px solid ${c.aktifIs?renk+"30":C.border}`,
@@ -495,7 +495,7 @@ export default function AtolyePage({ data, setters, setModal, setTab, aktifUE, s
                   <div style={{fontSize:11,fontWeight:600,color:c.aktifIs?C.text:C.muted}}>{c.ad}</div>
                   {c.aktifIs ? (
                     <div style={{fontSize:9,color:renk}}>
-                      {c.aktifIs.asama.ad} · <AsamaTimer basladiAt={c.aktifIs.asama.basladiAt}/>
+                      {c.aktifIs?.asama?.ad || "—"} · <AsamaTimer basladiAt={c.aktifIs?.asama?.basladiAt}/>
                     </div>
                   ):(
                     <div style={{fontSize:9,color:C.muted}}>Boşta</div>

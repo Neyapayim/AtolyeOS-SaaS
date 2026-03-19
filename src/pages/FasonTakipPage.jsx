@@ -197,7 +197,7 @@ export default function FasonTakipPage({ data, setters, setModal }) {
                       </div>
                       <div style={{ fontSize: 9, color: C.muted, marginTop: 2 }}>
                         {ts.kaynakUEAd && <span>{ts.kaynakUEAd}</span>}
-                        {ts.kalemler && <span> · {ts.kalemler.length} kalem</span>}
+                        {ts.kalemler?.length > 0 && <span> · {ts.kalemler.length} kalem</span>}
                       </div>
                     </div>
                     <Badge label="Tedarik Fasonda" color={C.sky} small />
@@ -240,7 +240,7 @@ export default function FasonTakipPage({ data, setters, setModal }) {
                       </div>
                       <div style={{ fontSize: 9, color: C.muted, marginTop: 2, display: "flex", gap: 8 }}>
                         {ts.kaynakSipNo && <span>Sipariş: {ts.kaynakSipNo}</span>}
-                        {ts.kalemler && <span>{ts.kalemler.length} kalem</span>}
+                        {ts.kalemler?.length > 0 && <span>{ts.kalemler.length} kalem</span>}
                         {ts.fasonYonlendirme?.firmaAd && <span>🏭 {ts.fasonYonlendirme.firmaAd}</span>}
                       </div>
                     </div>

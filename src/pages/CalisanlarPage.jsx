@@ -24,7 +24,7 @@ export default function CalisanlarPage({ data, onNewCalisan, onEditCalisan }) {
                   border: `2px solid ${C.cyan}30`, display: "flex", alignItems: "center",
                   justifyContent: "center", fontSize: 15, fontWeight: 800, color: C.cyan, fontFamily: F,
                 }}>
-                  {c.ad.split(" ").map(w => w[0]).join("").slice(0, 2)}
+                  {(c.ad || "?").split(" ").map(w => w[0] || "").join("").slice(0, 2)}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 15, fontWeight: 700, color: C.text, fontFamily: F }}>{c.ad}</div>

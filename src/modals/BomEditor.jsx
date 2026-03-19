@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { C, F, uid, fmt, BIRIM_GRUPLARI } from '../config/constants.js';
 import { bomKalemMaliyet, _netFiyat, boyUzunlukCmDuzelt } from '../engine/index.js';
 
-export function BomEditor({bom, onChange, hamMaddeler, yarimamulList, hizmetler, kendisi=""}) {
+export function BomEditor({bom = [], onChange, hamMaddeler = [], yarimamulList = [], hizmetler = [], kendisi=""}) {
   const [addTip,setAddTip]=useState(null);
   // Inline ekleme state'leri
   const [selId,setSelId]=useState("");

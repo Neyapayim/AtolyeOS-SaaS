@@ -5,7 +5,7 @@ import { Modal, Btn, SilButonu } from '../components/index.js';
 import { Field, TextInp, NumInp } from '../components/FormElements.jsx';
 import { BomEditor } from './BomEditor.jsx';
 
-export function UrunBomModal({kalem, hamMaddeler, yarimamulList, hizmetler, onClose, onSave, onDelete, onKopya}) {
+export function UrunBomModal({kalem, hamMaddeler = [], yarimamulList = [], hizmetler = [], onClose, onSave, onDelete, onKopya}) {
   const isEdit=!!kalem?.id;
   const [f,setF]=useState(kalem||{kod:"",ad:"",kategori:"",birim:"adet",miktar:0,minStok:0,satisKdvDahil:0,satisKdv:10,notlar:"",bom:[]});
   const up=(k,v)=>setF(p=>({...p,[k]:v}));
