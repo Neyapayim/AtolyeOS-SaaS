@@ -16,7 +16,7 @@ export default function LandingPage() {
       background: C.bg,
       color: C.text,
       fontFamily: FB,
-      overflowX: 'clip',
+      overflowX: 'hidden',
     }}>
       <Navbar />
       <HeroSection />

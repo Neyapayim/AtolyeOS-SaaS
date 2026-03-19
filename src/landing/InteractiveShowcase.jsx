@@ -1,49 +1,37 @@
 import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { ShoppingCart, AlertTriangle, Factory, ScanBarcode } from 'lucide-react';
-import { C, F, FB, GLASS } from '../config/constants.js';
+import { C, F, FB } from '../config/constants.js';
+
+const GLASS = {
+  border: '1px solid rgba(255,255,255,0.06)',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
+};
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   SCROLL RANGE HARITASI  (0 → 1 arası, 400vh)
-
-   Her adım %25'lik dilim:
-   Adım 0: 0.00 — 0.25   (giriş: 0.00→0.05, plato: 0.05→0.20, çıkış: 0.20→0.25)
-   Adım 1: 0.25 — 0.50   (giriş: 0.25→0.30, plato: 0.30→0.45, çıkış: 0.45→0.50)
-   Adım 2: 0.50 — 0.75   (giriş: 0.50→0.55, plato: 0.55→0.70, çıkış: 0.70→0.75)
-   Adım 3: 0.75 — 1.00   (giriş: 0.75→0.80, plato: 0.80→1.00, çıkış: yok — son adım kalır)
+   SCROLL RANGE — Her adım %25'lik dilim
+   Adım 0: 0.00→0.25  |  Adım 1: 0.25→0.50  |  Adım 2: 0.50→0.75  |  Adım 3: 0.75→1.00
+   Giriş: ilk %5  |  Plato: ortadaki %15  |  Çıkış: son %5 (son adımda çıkış yok)
    ══════════════════════════════════════════════════════════════════════════════ */
-
-function getRange(i) {
+function rng(i) {
   const s = i * 0.25;
-  const enterStart = s;
-  const enterEnd = s + 0.05;
-  const exitStart = s + 0.20;
-  const exitEnd = s + 0.25;
-  const isLast = i === 3;
-  return { enterStart, enterEnd, exitStart: isLast ? 1.1 : exitStart, exitEnd: isLast ? 1.2 : exitEnd };
+  return {
+    a: s,            // giriş başlangıcı
+    b: s + 0.05,     // giriş bitişi (plato başı)
+    c: s + 0.20,     // çıkış başlangıcı (plato sonu)
+    d: i === 3 ? 2 : s + 0.25,  // çıkış bitişi (son adımda asla kaybolmaz → 2 = ulaşılamaz)
+  };
 }
 
-/* ══════════════════════════════════════════════════════════════════════════════
-   SOL: METİN AŞAMALARI — position:absolute, üst üste
-   Aktif: opacity 1, y: 0  |  Giren: opacity 0→1, y: 40→0  |  Çıkan: opacity 1→0, y: 0→-40
-   ══════════════════════════════════════════════════════════════════════════════ */
+/* ── SOL: Metin — position:absolute üst üste ── */
 function StepText({ step, index, progress }) {
-  const { enterStart, enterEnd, exitStart, exitEnd } = getRange(index);
-
-  const opacity = useTransform(progress,
-    [enterStart, enterEnd, exitStart, exitEnd],
-    [0, 1, 1, 0]
-  );
-  const y = useTransform(progress,
-    [enterStart, enterEnd, exitStart, exitEnd],
-    [50, 0, 0, -50]
-  );
-
+  const { a, b, c, d } = rng(index);
   return (
     <motion.div style={{
       position: 'absolute', inset: 0,
       display: 'flex', flexDirection: 'column', justifyContent: 'center',
-      opacity, y,
+      opacity: useTransform(progress, [a, b, c, d], [0, 1, 1, 0]),
+      y: useTransform(progress, [a, b, c, d], [50, 0, 0, -50]),
       willChange: 'transform, opacity',
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, marginBottom: 12 }}>
@@ -54,7 +42,7 @@ function StepText({ step, index, progress }) {
           letterSpacing: '-2px', lineHeight: 1,
         }}>{step.num}</span>
         <h3 style={{
-          fontFamily: F, fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 900,
+          fontFamily: F, fontSize: 'clamp(22px, 3vw, 30px)', fontWeight: 900,
           color: C.text, letterSpacing: '-1.5px', lineHeight: 1.1,
         }}>{step.title}</h3>
       </div>
@@ -65,41 +53,22 @@ function StepText({ step, index, progress }) {
       }}>{step.sub}</p>
       <p style={{
         fontFamily: FB, fontSize: 15, lineHeight: 1.8,
-        color: C.sub, maxWidth: 420,
+        color: C.sub, maxWidth: 400,
       }}>{step.desc}</p>
     </motion.div>
   );
 }
 
-/* ══════════════════════════════════════════════════════════════════════════════
-   SAĞ: 3D MOCK EKRANLAR — position:absolute, üst üste
-   Giren: x: 100%→0, rotateY: 20→0, opacity: 0→1
-   Çıkan: x: 0→-100%, rotateY: 0→-20, opacity: 1→0
-   ══════════════════════════════════════════════════════════════════════════════ */
+/* ── SAĞ: 3D Mock Panel — position:absolute üst üste ── */
 function MockPanel({ index, progress, children }) {
-  const { enterStart, enterEnd, exitStart, exitEnd } = getRange(index);
-
-  const x = useTransform(progress,
-    [enterStart, enterEnd, exitStart, exitEnd],
-    ['100%', '0%', '0%', '-100%']
-  );
-  const rotateY = useTransform(progress,
-    [enterStart, enterEnd, exitStart, exitEnd],
-    [20, 0, 0, -20]
-  );
-  const opacity = useTransform(progress,
-    [enterStart, enterEnd, exitStart, exitEnd],
-    [0, 1, 1, 0]
-  );
-  const scale = useTransform(progress,
-    [enterStart, enterEnd, exitStart, exitEnd],
-    [0.85, 1, 1, 0.85]
-  );
-
+  const { a, b, c, d } = rng(index);
   return (
     <motion.div style={{
       position: 'absolute', inset: 0,
-      x, rotateY, opacity, scale,
+      opacity: useTransform(progress, [a, b, c, d], [0, 1, 1, 0]),
+      x: useTransform(progress, [a, b, c, d], ['100%', '0%', '0%', '-100%']),
+      rotateY: useTransform(progress, [a, b, c, d], [20, 0, 0, -20]),
+      scale: useTransform(progress, [a, b, c, d], [0.85, 1, 1, 0.85]),
       transformOrigin: 'center center',
       willChange: 'transform, opacity',
     }}>
@@ -220,31 +189,29 @@ function Mock4() {
   );
 }
 
-const steps_data = [
+/* ══════════════════════════════════════════════════════════════════════════════
+   MAIN — %100 useTransform, SIFIR useState
+   ══════════════════════════════════════════════════════════════════════════════ */
+const stepData = [
   { num: '01', title: '1 Tıkla Siparişi Alın', sub: 'Kanepeler, Masalar ve Teslimat Tarihleri', desc: 'Müşteri aradığında siparişi saniyeler içinde girin. Çoklu kalem, alt müşteri, termin tarihi — hepsi tek formda. Stok analizi otomatik başlar.' },
   { num: '02', title: 'Malzeme İhtiyacını Anında Görün', sub: 'Stokları Tüketen ve Otomatik Hesaplayan Zeka', desc: 'BOM reçetesi üzerinden rekürsif malzeme patlatma. Hangi ham madde eksik, ne kadar lazım — saniyeler içinde belli.' },
   { num: '03', title: 'Üretim Hattını Ateşleyin', sub: 'İstasyonlar, CNC, Döşeme ve Operatör Barları', desc: 'Kanban tahtasında aşama takibi, canlı zamanlayıcılar, iş günlüğü. Hangi istasyon ne yapıyor, kim ne kadar çalışmış — hepsi görünür.' },
   { num: '04', title: 'Barkodu Okutun, Sevk Edin', sub: 'İrsaliye ve Teslimat Raporları', desc: 'Üretim tamamlandı, sevkiyat emri oluşturuldu. Stok hareketleri otomatik güncellenir, kâr marjı raporlanır.' },
 ];
 
-/* ══════════════════════════════════════════════════════════════════════════════
-   MAIN — SCROLL-MASKED STICKY SHOWCASE
-   SIFIR useState. SIFIR setState. %100 useTransform GPU pipeline.
-   ══════════════════════════════════════════════════════════════════════════════ */
 export default function InteractiveShowcase() {
   const ref = useRef(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] });
-
-  /* Tüm bölümün fade-in'i (ekrana girince) */
-  const sectionOpacity = useTransform(scrollYProgress, [0, 0.03, 0.97, 1], [0, 1, 1, 0.3]);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start start', 'end end'],
+  });
 
   return (
     <section ref={ref} style={{ height: '400vh', position: 'relative' }}>
-      <motion.div style={{
+      <div style={{
         position: 'sticky', top: 0, height: '100vh',
         display: 'flex', alignItems: 'center',
         background: C.bg,
-        opacity: sectionOpacity,
       }}>
         {/* Ambient */}
         <div style={{ position: 'absolute', top: '35%', left: '58%', transform: 'translate(-50%,-50%)', width: 550, height: 400, borderRadius: '50%', background: `radial-gradient(ellipse, ${C.cyan}08, transparent 60%)`, pointerEvents: 'none', mixBlendMode: 'color-dodge' }} />
@@ -255,7 +222,7 @@ export default function InteractiveShowcase() {
           display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 56,
           alignItems: 'center', position: 'relative', zIndex: 1,
         }}>
-          {/* ════ SOL: Yazılar (absolute, üst üste) ════ */}
+          {/* ═══ SOL: Yazılar ═══ */}
           <div style={{ position: 'relative', minHeight: 280 }}>
             <motion.p style={{
               position: 'absolute', top: -52, left: 0,
@@ -264,31 +231,26 @@ export default function InteractiveShowcase() {
               opacity: useTransform(scrollYProgress, [0, 0.04], [0, 1]),
             }}>Nasıl Çalışır?</motion.p>
 
-            {steps_data.map((s, i) => (
+            {stepData.map((s, i) => (
               <StepText key={i} step={s} index={i} progress={scrollYProgress} />
             ))}
           </div>
 
-          {/* ════ SAĞ: 3D Cam Ekran ════ */}
+          {/* ═══ SAĞ: 3D Cam Ekran ═══ */}
           <div style={{ position: 'relative', perspective: '1200px' }}>
-            {/* Glow */}
-            <motion.div style={{
+            <div style={{
               position: 'absolute', inset: -8,
               background: `linear-gradient(135deg, ${C.cyan}15, transparent 40%, ${C.gold}0C, transparent 75%)`,
-              borderRadius: 28, filter: 'blur(30px)',
-              opacity: useTransform(scrollYProgress, [0, 0.05], [0, 1]),
+              borderRadius: 28, filter: 'blur(30px)', pointerEvents: 'none',
             }} />
 
-            {/* Cam Ekran */}
-            <motion.div style={{
+            <div style={{
               position: 'relative',
               background: 'rgba(8,8,11,0.9)',
               backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)',
-              border: '1px solid rgba(255,255,255,0.06)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 50px 120px rgba(0,0,0,0.6)',
+              ...GLASS,
+              boxShadow: `inset 0 1px 0 rgba(255,255,255,0.1), 0 50px 120px rgba(0,0,0,0.6)`,
               borderRadius: 22, overflow: 'hidden',
-              opacity: useTransform(scrollYProgress, [0, 0.04], [0, 1]),
-              scale: useTransform(scrollYProgress, [0, 0.04], [0.95, 1]),
             }}>
               {/* Title bar */}
               <div style={{ padding: '11px 16px', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '1px solid rgba(255,255,255,0.04)', background: 'rgba(255,255,255,0.012)' }}>
@@ -298,23 +260,19 @@ export default function InteractiveShowcase() {
                 <span style={{ marginLeft: 10, fontSize: 10, color: C.muted, fontFamily: FB }}>Atölye OS</span>
               </div>
 
-              {/* İçerik — 4 mock üst üste (absolute) */}
+              {/* 4 mock üst üste */}
               <div style={{ position: 'relative', padding: '22px 24px', minHeight: 340, perspective: '800px' }}>
                 <MockPanel index={0} progress={scrollYProgress}><Mock1 /></MockPanel>
                 <MockPanel index={1} progress={scrollYProgress}><Mock2 /></MockPanel>
                 <MockPanel index={2} progress={scrollYProgress}><Mock3 /></MockPanel>
                 <MockPanel index={3} progress={scrollYProgress}><Mock4 /></MockPanel>
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      <style>{`
-        @media (max-width: 900px) {
-          section > div > div > div:last-child { grid-template-columns: 1fr !important; gap: 32px !important; }
-        }
-      `}</style>
+      <style>{`@media(max-width:900px){section>div>div>div:last-child{grid-template-columns:1fr!important}}`}</style>
     </section>
   );
 }
