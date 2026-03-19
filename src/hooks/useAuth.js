@@ -89,42 +89,45 @@ export function useAuth() {
 
   // E-posta doğrulama mailini tekrar gönder
   const resendVerification = useCallback(async () => {
-    if (!user) return;
+    if (!auth.currentUser) return;
     try {
-      await sendEmailVerification(user);
+      await sendEmailVerification(auth.currentUser);
     } catch (e) {
       setError(e.message);
     }
-  }, [user]);
+  }, []);
 
   // Kullanıcıyı yeniden yükle (emailVerified durumunu güncellemek için)
   const reloadUser = useCallback(async () => {
-    if (!user) return;
+    if (!auth.currentUser) return;
     try {
-      await user.reload();
-      setUser({ ...user }); // React re-render tetikle
+      await auth.currentUser.reload();
+      // Yükleme ekranını kısaca tetikleyerek React'i zorla güncelle
+      setLoading(true);
+      setUser(auth.currentUser);
+      setTimeout(() => setLoading(false), 50);
     } catch (e) {
       setError(e.message);
     }
-  }, [user]);
+  }, []);
 
   // Onboarding tamamlandığında Firestore'a profil kaydet
   const completeOnboarding = useCallback(async (data) => {
-    if (!isConfigured || !user) return;
+    if (!isConfigured || !auth.currentUser) return;
     try {
       const profileData = {
         ...data,
-        email: user.email,
+        email: auth.currentUser.email,
         onboardingComplete: true,
         createdAt: new Date().toISOString(),
       };
-      await setDoc(doc(db, "users", user.uid), profileData, { merge: true });
+      await setDoc(doc(db, "users", auth.currentUser.uid), profileData, { merge: true });
       setProfile(profileData);
     } catch (e) {
       setError(e.message);
       throw e;
     }
-  }, [user]);
+  }, []);
 
   return {
     user, loading, error, profile, profileLoading,
