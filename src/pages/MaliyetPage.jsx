@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { C, F, FB, fmt } from '../config/constants.js';
 import { Btn } from '../components/index.js';
 import { _bomKalemMaliyet, _ymBirimMaliyet, bomKalemMaliyet, snGoster } from '../engine/index.js';
+import AkisHaritasiCanvas from '../components/AkisHaritasiCanvas.jsx';
 
 /* ══════════════════════════════════════════════════════════════════
    YM Detay Satırı — rekürsif iç bileşen gösterimi
@@ -348,88 +349,10 @@ export default function MaliyetPage({
         ))}
       </div>
 
-      {/* ═══════════════ AKIŞ SEKMESİ ═══════════════ */}
-      {malTab === "akis" && (() => {
-        const akis = u.uretimAkis || [];
-        return (
-          <div style={{
-            background: "rgba(255,255,255,.02)", border: `1px solid ${C.border}`,
-            borderRadius: 16, padding: 28, minHeight: 300,
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: C.text, fontFamily: F }}>
-                  🔗 Uretim Akis Haritasi
-                </div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
-                  {u.ad} icin uretim adimlari ve surec akisi
-                </div>
-              </div>
-              <Btn onClick={() => setModal({ type: "duzenleUrunBom", data: u })}
-                style={{ background: `${C.cyan}12`, border: `1px solid ${C.cyan}30`, color: C.cyan }}>
-                BOM Duzenle
-              </Btn>
-            </div>
-
-            {akis.length > 0 ? (
-              <div>
-                {/* Akis adimlari */}
-                {akis.map((adim, i) => {
-                  const isFason = adim.tip === "fason";
-                  const renk = isFason ? C.lav : C.cyan;
-                  return (
-                    <div key={adim.id || i}>
-                      {i > 0 && (
-                        <div style={{ display: "flex", justifyContent: "center", padding: "4px 0" }}>
-                          <div style={{ width: 2, height: 24, background: `${C.border}` }} />
-                        </div>
-                      )}
-                      <div style={{
-                        background: `${renk}08`, border: `1px solid ${renk}20`, borderRadius: 12,
-                        padding: "12px 18px", display: "flex", alignItems: "center", gap: 14,
-                      }}>
-                        <div style={{
-                          width: 32, height: 32, borderRadius: 8, background: `${renk}18`,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: 14, fontWeight: 800, color: renk, fontFamily: F,
-                        }}>{i + 1}</div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{adim.ad || adim.kalemAd || "Adim"}</div>
-                          <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>
-                            {isFason ? "🏭 Fason" : "👤 Ic Iscilik"}
-                            {adim.sure > 0 && <span style={{ marginLeft: 8 }}>⏱ {snGoster(adim.sure)}</span>}
-                            {adim.sureGun > 0 && <span style={{ marginLeft: 8 }}>📅 {adim.sureGun} gun</span>}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: "right" }}>
-                          {adim.maliyet > 0 && (
-                            <div style={{ fontSize: 13, fontWeight: 700, color: renk, fontFamily: F }}>{fmt(adim.maliyet)}₺</div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{
-                textAlign: "center", padding: "40px 20px", color: C.muted,
-                background: "rgba(255,255,255,.015)", borderRadius: 12,
-                border: `1px dashed ${C.border}`,
-              }}>
-                <div style={{ fontSize: 36, marginBottom: 12, opacity: .4 }}>🔗</div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: C.sub, marginBottom: 6 }}>
-                  Uretim akis haritasi henuz tanimlanmamis
-                </div>
-                <div style={{ fontSize: 11, color: C.muted, maxWidth: 380, margin: "0 auto", lineHeight: 1.5 }}>
-                  Bu urun icin uretim adimlarini (kesim → dikis → boya → montaj vb.)
-                  tanimlayarak uretim surecini gorsellestirebilirsiniz.
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      {/* ═══════════════ AKIŞ SEKMESİ — React Flow Gorsel Tuval ═══════════════ */}
+      {malTab === "akis" && (
+        <AkisHaritasiCanvas urun={u} setUrunler={setUrunler} />
+      )}
 
       {/* ═══════════════ ÖZET SEKMESİ ═══════════════ */}
       {malTab === "ozet" && (() => {
