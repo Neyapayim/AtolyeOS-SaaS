@@ -7,8 +7,9 @@ import { BomEditor } from './BomEditor.jsx';
 
 export function UrunBomModal({kalem, hamMaddeler = [], yarimamulList = [], hizmetler = [], onClose, onSave, onDelete, onKopya}) {
   const isEdit=!!kalem?.id;
-  const [f,setF]=useState(kalem||{kod:"",ad:"",kategori:"",birim:"adet",miktar:0,minStok:0,satisKdvDahil:0,satisKdv:10,notlar:"",bom:[]});
+  const [f,setF]=useState(()=>{const init=kalem||{kod:"",ad:"",kategori:"",birim:"adet",stok:0,minStok:0,satisKdvDahil:0,satisKdv:10,notlar:"",bom:[]};if(init.miktar!==undefined&&init.stok===undefined){init.stok=init.miktar;}return init;});
   const up=(k,v)=>setF(p=>({...p,[k]:v}));
+  const [hata,setHata]=useState("");
   const malBom=f.bom.reduce((s,b)=>{
     const liste=[...hamMaddeler,...yarimamulList,...hizmetler];
     const k=liste.find(x=>x.id===b.kalemId);
@@ -32,7 +33,7 @@ export function UrunBomModal({kalem, hamMaddeler = [], yarimamulList = [], hizme
             {["0","10","20"].map(v=><option key={v} value={v} style={{background:C.s2}}>%{v}</option>)}
           </select>
         </Field>
-        <Field label="Stok (adet)"><NumInp value={f.miktar} onChange={v=>up("miktar",v)} style={{width:"100%"}}/></Field>
+        <Field label="Stok (adet)"><NumInp value={f.stok} onChange={v=>up("stok",v)} style={{width:"100%"}}/></Field>
       </div>
       {malBom>0&&f.satisKdvDahil>0&&(
         <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
@@ -52,12 +53,13 @@ export function UrunBomModal({kalem, hamMaddeler = [], yarimamulList = [], hizme
       </div>
       <Field label="Not"><TextInp value={f.notlar} onChange={v=>up("notlar",v)}/></Field>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
+        {hata&&<div style={{background:"rgba(220,60,60,.12)",border:"1px solid rgba(220,60,60,.3)",borderRadius:8,padding:"8px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:14}}>⚠</span><span style={{fontSize:12,color:"#DC3C3C",fontWeight:500}}>{hata}</span></div>}
         <div style={{display:"flex",gap:6}}>
           {isEdit&&<SilButonu onDelete={()=>onDelete(f.id)} isim={f.ad}/>}
           {isEdit&&onKopya&&<button onClick={()=>onKopya(f)}
             style={{background:"rgba(255,255,255,.05)",border:`1px solid ${C.border}`,borderRadius:8,padding:"7px 13px",fontSize:12,color:C.sub,cursor:"pointer"}}>📋 Kopyasını Oluştur</button>}
         </div>
-        <div style={{display:"flex",gap:8}}><Btn onClick={onClose}>İptal</Btn><Btn variant="primary" color={C.mint} onClick={()=>onSave(f)}>{isEdit?"Kaydet":"Ekle"}</Btn></div>
+        <div style={{display:"flex",gap:8}}><Btn onClick={onClose}>İptal</Btn><Btn variant="primary" color={C.mint} onClick={()=>{if(!(f.ad||"").trim()){setHata("Urun adi zorunludur");return;}setHata("");onSave(f);}}>{isEdit?"Kaydet":"Ekle"}</Btn></div>
       </div>
     </Modal>
   );

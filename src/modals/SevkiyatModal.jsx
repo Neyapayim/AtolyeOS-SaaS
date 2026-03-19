@@ -5,6 +5,7 @@ import { Field, TextInp, NumInp } from '../components/FormElements.jsx';
 
 export function SevkiyatModal({data, onClose, onKaydet, siparisler=[], musteriler=[]}){
   const isEdit = !!data?.id;
+  const [hata, setHata] = useState("");
   const [f, setF] = useState({
     siparisId: data?.siparisId || "",
     musteriAd: data?.musteriAd || "",
@@ -102,11 +103,13 @@ export function SevkiyatModal({data, onClose, onKaydet, siparisler=[], musterile
       </div>
 
       {/* Butonlar */}
+      {hata&&<div style={{background:"rgba(220,60,60,.12)",border:"1px solid rgba(220,60,60,.3)",borderRadius:8,padding:"8px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:14}}>⚠</span><span style={{fontSize:12,color:"#DC3C3C",fontWeight:500}}>{hata}</span></div>}
       <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
         <button onClick={onClose} style={{background:"rgba(255,255,255,0.05)",border:`1px solid ${C.border}`,
           borderRadius:8,padding:"8px 16px",fontSize:12,color:C.muted,cursor:"pointer"}}>İptal</button>
         <button onClick={()=>{
-          if(!f.siparisId && !f.musteriAd) return;
+          if(!f.siparisId && !f.musteriAd) { setHata("Siparis veya musteri secimi zorunludur"); return; }
+          setHata("");
 
           onKaydet({
             id: isEdit ? data.id : "SVK-"+uid(),

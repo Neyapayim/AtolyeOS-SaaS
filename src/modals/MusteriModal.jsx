@@ -33,9 +33,11 @@ export function MusteriModal({ data, onClose, onSave, onDelete }) {
   const up = (k, v) => setF(p => ({ ...p, [k]: v }));
   const listKey = f.tip === "bayi" ? "altMusteriler" : "subeler";
   const listLabel = f.tip === "bayi" ? "Alt Müşteriler" : "Şubeler / Teslimat Noktaları";
+  const [hata, setHata] = useState("");
 
   const kaydet = () => {
-    if (!f.ad.trim()) return;
+    if (!f.ad.trim()) { setHata("Musteri adi zorunludur"); return; }
+    setHata("");
     onSave?.({ ...f, id: isEdit ? data.id : uid() });
   };
 
@@ -70,11 +72,13 @@ export function MusteriModal({ data, onClose, onSave, onDelete }) {
 
   return (
     <Modal title={isEdit ? "Müşteri Düzenle" : "Yeni Müşteri"} onClose={onClose}
-      footer={<>
+      footer={<div style={{display:"flex",alignItems:"center",gap:8,width:"100%"}}>
         {isEdit && <SilButonu onDelete={() => onDelete?.(data.id)} isim={data.ad} />}
-        <Btn onClick={onClose}>İptal</Btn>
+        {hata&&<span style={{fontSize:11,color:"#DC3C3C",flex:1}}>⚠ {hata}</span>}
+        {!hata&&<span style={{flex:1}}/>}
+        <Btn onClick={onClose}>Iptal</Btn>
         <Btn variant="primary" onClick={kaydet}>Kaydet</Btn>
-      </>}>
+      </div>}>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {/* Temel bilgiler */}
         <div>

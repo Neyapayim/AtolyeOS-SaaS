@@ -8,6 +8,7 @@ export function IscilikModal({kalem, istasyonlar, calisanlar, onClose, onSave, o
   const isEdit=!!kalem?.id;
   const [f,setF]=useState(kalem||{kod:"",ad:"",tip:"ic",istasyon:"",calisan:"",birim:"adet",sureDkAdet:0,birimFiyat:0,kdv:0,notlar:""});
   const up=(k,v)=>setF(p=>({...p,[k]:v}));
+  const [hata,setHata]=useState("");
   // sureDkAdet = saniye cinsinden islem suresi
   // Saatlik ucret hesabi: birimFiyat / (sureDkAdet / 3600)
   const saatUcret = f.sureDkAdet>0 ? (f.birimFiyat / (f.sureDkAdet/3600)) : null;
@@ -140,13 +141,14 @@ export function IscilikModal({kalem, istasyonlar, calisanlar, onClose, onSave, o
 
       <Field label="Not"><TextInp value={f.notlar} onChange={v=>up("notlar",v)} placeholder="Ozel notlar..."/></Field>
 
+      {hata&&<div style={{background:"rgba(220,60,60,.12)",border:"1px solid rgba(220,60,60,.3)",borderRadius:8,padding:"8px 14px",marginTop:6,display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:14}}>⚠</span><span style={{fontSize:12,color:"#DC3C3C",fontWeight:500}}>{hata}</span></div>}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:6}}>
         {isEdit
           ?<SilButonu onDelete={()=>onDelete(f.id)} isim={f.ad}/>
           :<span/>}
         <div style={{display:"flex",gap:8}}>
           <Btn onClick={onClose}>Iptal</Btn>
-          <Btn variant="primary" color={C.gold} onClick={()=>onSave({...f,tip:"ic",istasyon:f.istasyon==="__manuel__"?manuelIstasyon:f.istasyon})}>{isEdit?"Kaydet":"Ekle"}</Btn>
+          <Btn variant="primary" color={C.gold} onClick={()=>{if(!(f.ad||"").trim()){setHata("Iscilik adi zorunludur");return;}setHata("");onSave({...f,tip:"ic",istasyon:f.istasyon==="__manuel__"?manuelIstasyon:f.istasyon});}}>{isEdit?"Kaydet":"Ekle"}</Btn>
         </div>
       </div>
     </Modal>

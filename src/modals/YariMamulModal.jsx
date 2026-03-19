@@ -9,6 +9,7 @@ export function YariMamulModal({kalem, hamMaddeler = [], yarimamulList = [], hiz
   const isEdit=!!kalem?.id;
   const [f,setF]=useState(kalem||{kod:"",ad:"",kategori:"",birim:"adet",miktar:0,minStok:0,notlar:"",bom:[]});
   const up=(k,v)=>setF(p=>({...p,[k]:v}));
+  const [hata,setHata]=useState("");
   const malBom=f.bom.reduce((s,b)=>{
     const liste=[...hamMaddeler,...yarimamulList,...hizmetler];
     const k=liste.find(x=>x.id===b.kalemId);
@@ -55,8 +56,9 @@ export function YariMamulModal({kalem, hamMaddeler = [], yarimamulList = [], hiz
           {isEdit&&onKopya&&<button onClick={()=>onKopya(f)}
             style={{background:"rgba(255,255,255,.05)",border:`1px solid ${C.border}`,borderRadius:8,padding:"7px 13px",fontSize:12,color:C.sub,cursor:"pointer"}}>📋 Kopyasını Oluştur</button>}
         </div>
-        <div style={{display:"flex",gap:8}}><Btn onClick={onClose}>İptal</Btn><Btn variant="primary" onClick={()=>onSave(f)}>{ isEdit?"Kaydet":"Ekle"}</Btn></div>
+        <div style={{display:"flex",gap:8}}><Btn onClick={onClose}>Iptal</Btn><Btn variant="primary" onClick={()=>{if(!(f.ad||"").trim()){setHata("Yari mamul adi zorunludur");return;}setHata("");onSave(f);}}>{ isEdit?"Kaydet":"Ekle"}</Btn></div>
       </div>
+      {hata&&<div style={{background:"rgba(220,60,60,.12)",border:"1px solid rgba(220,60,60,.3)",borderRadius:8,padding:"8px 14px",marginTop:8,display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:14}}>⚠</span><span style={{fontSize:12,color:"#DC3C3C",fontWeight:500}}>{hata}</span></div>}
     </Modal>
   );
 }

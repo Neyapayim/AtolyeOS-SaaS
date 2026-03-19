@@ -82,9 +82,10 @@ export function ModalDispatch({ modal, setModal, ...props }) {
       hamMaddeler={props.hamMaddeler} yarimamulList={props.yarimamulList}
       hizmetler={props.hizmetler} onClose={close}
       onSave={f => {
+        const urunData = { ...f, stok: f.stok ?? f.miktar ?? 0 };
         props.setUrunler(p => isEdit
-          ? p.map(x => x.id === f.id ? { ...x, ...f } : x)
-          : [...p, { ...f, id: uid(), satisKdvDahil: f.satisKdvDahil || 0, satisKdv: f.satisKdv || 10, gelirVergisi: 30, aktif: true, stok: 0, minStok: 0 }]
+          ? p.map(x => x.id === urunData.id ? { ...x, ...urunData } : x)
+          : [...p, { ...urunData, id: uid(), satisKdvDahil: urunData.satisKdvDahil || 0, satisKdv: urunData.satisKdv || 10, gelirVergisi: 30, aktif: true, stok: urunData.stok || 0, minStok: urunData.minStok || 0 }]
         );
         close();
       }}
@@ -150,9 +151,10 @@ export function ModalDispatch({ modal, setModal, ...props }) {
       hamMaddeler={props.hamMaddeler} yarimamulList={props.yarimamulList}
       hizmetler={props.hizmetler} onClose={close}
       onSave={f => {
+        const urunData = { ...f, stok: f.stok ?? f.miktar ?? 0 };
         props.setUrunler(p => isEdit
-          ? p.map(x => x.id === f.id ? { ...x, ...f } : x)
-          : [...p, { ...f, id: uid(), satisKdvDahil: f.satisKdvDahil || 0, satisKdv: f.satisKdv || 10, gelirVergisi: 30, aktif: true, stok: 0, minStok: 0 }]
+          ? p.map(x => x.id === urunData.id ? { ...x, ...urunData } : x)
+          : [...p, { ...urunData, id: uid(), satisKdvDahil: urunData.satisKdvDahil || 0, satisKdv: urunData.satisKdv || 10, gelirVergisi: 30, aktif: true, stok: urunData.stok || 0, minStok: urunData.minStok || 0 }]
         );
         close();
       }}

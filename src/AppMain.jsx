@@ -76,6 +76,18 @@ export default function AppMain() {
   const [malTab, setMalTab] = useState("ozet");
   const [malParams, setMalParams] = useStored("malParams", { targetSaleKdvDahil: 0, saleKdv: 10, gelirVergisi: 30 });
 
+  // ── Veri migrasyon: miktar → stok (tek seferlik) ──
+  useEffect(() => {
+    const fix = urunler.some(u => u.miktar !== undefined && u.stok === undefined);
+    if (fix) {
+      setUrunler(p => p.map(u =>
+        u.miktar !== undefined && u.stok === undefined
+          ? { ...u, stok: u.miktar }
+          : u
+      ));
+    }
+  }, []);
+
   useEffect(() => { const t = setTimeout(() => setMounted(true), 80); return () => clearTimeout(t); }, []);
   useEffect(() => {
     const t = setInterval(() => {

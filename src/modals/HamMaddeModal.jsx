@@ -418,6 +418,7 @@ const STANDART_KATALOGLAR = [
 export function HamMaddeModal({kalem,onClose,onSave,onDelete,onKopya,hamMaddeler=[],yarimamulList=[],hizmetler=[]}) {
   const isEdit=!!kalem?.id;
   const [adim,setAdim]=useState((isEdit||kalem?._kopya)?"form":"kategori-sec");
+  const [hata,setHata]=useState("");
   // Modal açılınca _kdvDahilInput'u sıfırla — net her zaman hesaplansın
   const [f,setF]=useState(kalem ? {...kalem, _kdvDahilInput:undefined} : {kod:"",ad:"",kategori:"",birimGrup:"uzunluk",birim:"mt",boyUzunluk:null,miktar:0,minStok:0,listeFiyat:0,iskonto:0,kdv:20,tedarikci:"",notlar:"",
     // ── Tedarik & Sevkiyat ──
@@ -756,9 +757,10 @@ export function HamMaddeModal({kalem,onClose,onSave,onDelete,onKopya,hamMaddeler
             </div>
             <div style={{display:"flex",gap:8}}>
               <Btn onClick={onClose}>İptal</Btn>
-              <Btn variant="primary" color={C.sky} onClick={()=>onSave(f)}>{isEdit?"Kaydet":"Ekle"}</Btn>
+              <Btn variant="primary" color={C.sky} onClick={()=>{if(!(f.ad||"").trim()){setHata("Malzeme adi zorunludur");return;}setHata("");onSave(f);}}>{isEdit?"Kaydet":"Ekle"}</Btn>
             </div>
           </div>
+          {hata&&<div style={{background:"rgba(220,60,60,.12)",border:"1px solid rgba(220,60,60,.3)",borderRadius:8,padding:"8px 14px",marginTop:8,display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:14}}>⚠</span><span style={{fontSize:12,color:"#DC3C3C",fontWeight:500}}>{hata}</span></div>}
         </>
       )}
     </Modal>

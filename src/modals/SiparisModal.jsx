@@ -55,11 +55,13 @@ export function SiparisModal({ data, onClose, setSiparisler, isEdit, urunler = [
   }, [gecerliKalemler, analizler]);
 
   const toplamAdet = kalemler.reduce((s, k) => s + (k.adet || 0), 0);
+  const [hata, setHata] = useState("");
 
   const save = () => {
-    if (!siparisAdi.trim()) return;
-    if (!musteri.trim() && !musteriId) return;
-    if (gecerliKalemler.length === 0) return;
+    if (!siparisAdi.trim()) { setHata("Siparis adi zorunludur"); return; }
+    if (!musteri.trim() && !musteriId) { setHata("Musteri secimi veya adi zorunludur"); return; }
+    if (gecerliKalemler.length === 0) { setHata("En az bir urun kalemi ekleyin ve urun secin"); return; }
+    setHata("");
 
     const spKalemler = gecerliKalemler.map((k, i) => {
       const a = analizler?.[i] || {};
@@ -228,14 +230,20 @@ export function SiparisModal({ data, onClose, setSiparisler, isEdit, urunler = [
           style={{ width: "100%", background: "rgba(255,255,255,.04)", border: `1px solid ${C.border}`, borderRadius: 9, padding: "9px 12px", fontSize: 13, color: C.text, resize: "vertical", fontFamily: FB }} />
       </Field>
 
+      {hata && (
+        <div style={{ background: `${C.coral}14`, border: `1px solid ${C.coral}30`, borderRadius: 8, padding: "8px 14px", marginTop: 6, display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 14 }}>⚠</span>
+          <span style={{ fontSize: 12, color: C.coral, fontWeight: 500 }}>{hata}</span>
+        </div>
+      )}
       <div style={{ display: "flex", gap: 8, justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
         <div style={{ fontSize: 11, color: C.muted }}>
           {toplamAdet} adet · {gecerliKalemler.length} kalem
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <Btn onClick={onClose}>İptal</Btn>
+          <Btn onClick={onClose}>Iptal</Btn>
           <Btn variant="primary" onClick={save}>
-            {isEdit ? "Kaydet" : "Oluştur"}
+            {isEdit ? "Kaydet" : "Olustur"}
           </Btn>
         </div>
       </div>

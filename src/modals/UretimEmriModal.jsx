@@ -102,8 +102,10 @@ export function UretimEmriModal({init,duzenleme,onClose,urunler,urunBomList,yari
     }));
   };
 
+  const [hata,setHata]=useState("");
   const handleSave=()=>{
-    if(!ue.urunAd?.trim()) return;
+    if(!ue.urunAd?.trim()){setHata("Urun secimi zorunludur");return;}
+    setHata("");
     // Eksik malzemeleri UE'ye kaydet (tedarik takibi için)
     const ueKayit = {...ue, eksikMalzemeler: malzemeListesi.filter(m=>!m.yeterli)};
     if(duzenleme){
@@ -406,10 +408,11 @@ export function UretimEmriModal({init,duzenleme,onClose,urunler,urunBomList,yari
             {silOnay?"Emin misin? Tekrar bas":"🗑 Sil"}
           </button>
         )}
+        {hata&&<span style={{fontSize:11,color:"#DC3C3C",marginLeft:8}}>⚠ {hata}</span>}
         <div style={{display:"flex",gap:8,marginLeft:"auto"}}>
-          <Btn onClick={onClose}>İptal</Btn>
+          <Btn onClick={onClose}>Iptal</Btn>
           <Btn variant="primary" onClick={handleSave}>
-            {duzenleme?"Kaydet":"Oluştur"}
+            {duzenleme?"Kaydet":"Olustur"}
           </Btn>
         </div>
       </div>

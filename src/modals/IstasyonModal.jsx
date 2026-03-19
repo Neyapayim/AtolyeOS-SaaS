@@ -11,8 +11,10 @@ export function IstasyonModal({ data, onClose, setIstasyonlar, isEdit }) {
   const [calisan, setCalisan] = useState(data?.calisan || "");
   const [notlar, setNotlar] = useState(data?.notlar || "");
 
+  const [hata, setHata] = useState("");
   const kaydet = () => {
-    if (!ad.trim()) return;
+    if (!ad.trim()) { setHata("Istasyon adi zorunludur"); return; }
+    setHata("");
     const kayit = { id: isEdit ? data.id : uid(), ad, tip, kapasite, calisan, durum: tip === "fason" ? "fason" : "aktif", notlar };
     setIstasyonlar(p => isEdit ? p.map(x => x.id === data.id ? { ...x, ...kayit } : x) : [...p, kayit]);
     onClose();
@@ -22,11 +24,13 @@ export function IstasyonModal({ data, onClose, setIstasyonlar, isEdit }) {
 
   return (
     <Modal title={isEdit ? "İstasyon Düzenle" : "Yeni İstasyon"} onClose={onClose}
-      footer={<>
+      footer={<div style={{display:"flex",alignItems:"center",gap:8,width:"100%"}}>
         {isEdit && <SilButonu onDelete={() => { setIstasyonlar(p => p.filter(x => x.id !== data.id)); onClose(); }} isim={data.ad} />}
-        <Btn onClick={onClose}>İptal</Btn>
+        {hata&&<span style={{fontSize:11,color:"#DC3C3C",flex:1}}>⚠ {hata}</span>}
+        {!hata&&<span style={{flex:1}}/>}
+        <Btn onClick={onClose}>Iptal</Btn>
         <Btn variant="primary" onClick={kaydet}>Kaydet</Btn>
-      </>}>
+      </div>}>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div>
           <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>İstasyon Adı</div>
