@@ -631,17 +631,18 @@ function InnerFlow({ urun, bomPalette, yarimamulList, allKalemler }) {
 
   // ── Kaydet + Kapat ──
   const handleKaydet = useCallback(() => {
+    // HER ZAMAN kaydet ve duzenleme modunu kapat
+    kaydet();
+    setIsEditing(false);
+
+    // Eksik varsa bilgilendirme uyarisi goster (kayit engellenmez)
     if (eksikKontrol.length > 0) {
       const msg = eksikKontrol.map(e =>
         `${e.label}: ${e.eksik.map(x => x.label).join(', ')}`
       ).join('\n');
       setSaveMsg(msg);
-      // Yine de kaydet — uyari bilgilendirme amacli
-      kaydet();
-      setTimeout(() => setSaveMsg(null), 6000);
+      setTimeout(() => setSaveMsg(null), 8000);
     } else {
-      kaydet();
-      setIsEditing(false);
       setSaveMsg(null);
     }
   }, [kaydet, eksikKontrol]);
