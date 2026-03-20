@@ -547,7 +547,7 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
     <div style={{
       background: `color-mix(in srgb, ${C.bg} 92%, transparent)`,
       border: `1px solid ${C.border}`, borderRadius: 16, overflow: 'hidden',
-      display: 'flex', height: 620, boxShadow: 'inset 0 1px 0 rgba(255,255,255,.06)',
+      display: 'flex', height: 'calc(100vh - 160px)', minHeight: 500, boxShadow: 'inset 0 1px 0 rgba(255,255,255,.06)',
     }}>
       {/* ═══ SOL PALET ═══ */}
       <div style={{
