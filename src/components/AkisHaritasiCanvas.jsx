@@ -13,6 +13,7 @@ import {
   Handle,
   Position,
   ConnectionMode,
+  SelectionMode,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { C, F, FB } from '../config/constants.js';
@@ -828,6 +829,10 @@ function InnerFlow({ urun, bomPalette, yarimamulList, allKalemler }) {
             nodesDraggable={isEditing}
             nodesConnectable={isEditing}
             elementsSelectable={true}
+            selectionOnDrag={isEditing}
+            selectionMode={SelectionMode.Partial}
+            multiSelectionKeyCode="Control"
+            panOnDrag={isEditing ? [2] : [0, 2]}
             fitView
             snapToGrid snapGrid={[20, 20]}
             deleteKeyCode={isEditing ? ['Delete', 'Backspace'] : []}
