@@ -12,7 +12,6 @@ import {
   MarkerType,
   Handle,
   Position,
-  Panel,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { C, F, FB } from '../config/constants.js';
@@ -233,40 +232,36 @@ function SwimlaneBg({ isDark }) {
   const txtColor = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.07)';
 
   return (
-    <Panel position="top-left" style={{
-      width: '100%', height: '100%', margin: 0, padding: 0,
-      pointerEvents: 'none', zIndex: 0,
+    <div style={{
+      position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
+      display: 'flex',
     }}>
-      <div style={{ width: '100%', height: '100%', display: 'flex', position: 'relative' }}>
-        {/* Sol: Dis Operasyonlar */}
-        <div style={{ flex: 1, background: disColor }} />
-        {/* Ortada separator */}
-        <div style={{
-          width: 1,
-          background: `linear-gradient(180deg, transparent 5%, ${lineColor} 20%, ${lineColor} 80%, transparent 95%)`,
-        }} />
-        {/* Sag: Ic Uretim */}
-        <div style={{ flex: 1, background: icColor }} />
+      {/* Sol: Dis Operasyonlar */}
+      <div style={{ flex: 1, background: disColor }} />
+      {/* Ortada separator */}
+      <div style={{
+        width: 1,
+        background: `linear-gradient(180deg, transparent 5%, ${lineColor} 20%, ${lineColor} 80%, transparent 95%)`,
+      }} />
+      {/* Sag: Ic Uretim */}
+      <div style={{ flex: 1, background: icColor }} />
 
-        {/* Etiketler */}
-        <div style={{
-          position: 'absolute', top: 14, left: 20,
-          fontSize: 10, fontWeight: 700, color: txtColor, fontFamily: F,
-          letterSpacing: '1px', textTransform: 'uppercase',
-          userSelect: 'none',
-        }}>
-          {'\u2190'} Dis Operasyonlar
-        </div>
-        <div style={{
-          position: 'absolute', top: 14, right: 20,
-          fontSize: 10, fontWeight: 700, color: txtColor, fontFamily: F,
-          letterSpacing: '1px', textTransform: 'uppercase',
-          userSelect: 'none',
-        }}>
-          Ic Uretim {'\u2192'}
-        </div>
+      {/* Etiketler — sabit */}
+      <div style={{
+        position: 'absolute', top: 12, left: 16,
+        fontSize: 10, fontWeight: 700, color: txtColor, fontFamily: F,
+        letterSpacing: '1px', textTransform: 'uppercase', userSelect: 'none',
+      }}>
+        {'\u2190'} Dis Operasyonlar
       </div>
-    </Panel>
+      <div style={{
+        position: 'absolute', top: 12, right: 16,
+        fontSize: 10, fontWeight: 700, color: txtColor, fontFamily: F,
+        letterSpacing: '1px', textTransform: 'uppercase', userSelect: 'none',
+      }}>
+        Ic Uretim {'\u2192'}
+      </div>
+    </div>
   );
 }
 
@@ -669,7 +664,8 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
           }}>{nodes.length} dugum {'\u00B7'} {edges.length} ok</div>
         </div>
 
-        <div ref={wrapperRef} style={{ flex: 1, height: 560 }} onDragOver={onDragOver} onDrop={onDrop}>
+        <div ref={wrapperRef} style={{ flex: 1, height: 560, position: 'relative' }} onDragOver={onDragOver} onDrop={onDrop}>
+          <SwimlaneBg isDark={isDark} />
           <ReactFlow
             nodes={nodesEnriched}
             edges={edgesStyled}
@@ -689,7 +685,6 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
               markerEnd: { type: MarkerType.ArrowClosed, color: C.cyan },
             }}
           >
-            <SwimlaneBg isDark={isDark} />
             <Background variant="dots" gap={20} size={1} color={gridColor} />
             <Controls style={{
               background: isDark ? C.s3 : '#fff', border: `1px solid ${C.border}`,
