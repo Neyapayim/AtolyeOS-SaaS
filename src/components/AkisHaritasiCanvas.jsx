@@ -46,20 +46,20 @@ const TIP = {
   hizmet_ic:    { ikon: '\uD83D\uDC64', label: 'Ic Iscilik',  renk: C.gold },
   hizmet_fason: { ikon: '\uD83C\uDFED', label: 'Fason',       renk: C.lav },
   nakliye:      { ikon: '\uD83D\uDE9A', label: 'Nakliye',     renk: C.orange },
-  ic_depo:      { ikon: '\uD83C\uDFE2', label: 'Dogrudan Teslim', renk: C.sky },
+  ic_depo:      { ikon: '\uD83C\uDFED', label: 'Direkt Fabrikaya', renk: C.sky },
   urun:         { ikon: '\uD83C\uDFAF', label: 'Nihai Urun',  renk: C.mint },
 };
 
 const NAKLIYE_TURLERI = [
   { grup: 'Sevkiyat', items: [
-    { id: 'firma_getirir',  label: 'Firma Getirir' },
-    { id: 'kargo',          label: 'Kargo' },
-    { id: 'nakliyeci',      label: 'Nakliyeci' },
-    { id: 'kurye',          label: 'Kurye' },
+    { id: 'kargo',           label: 'Kargo' },
+    { id: 'firma_getirir',   label: 'Firma Getirir' },
+    { id: 'kendi_aracimiz',  label: 'Kendi Aracimiz' },
+    { id: 'harici_nakliye',  label: 'Harici Nakliye' },
+    { id: 'kurye',           label: 'Kurye' },
   ]},
-  { grup: 'Dogrudan Teslim', items: [
-    { id: 'bizim_arac',     label: 'Bizim Arac' },
-    { id: 'depoda',         label: 'Depoda Mevcut' },
+  { grup: 'Direkt Fabrikaya', items: [
+    { id: 'direkt_fabrika',  label: 'Direkt Fabrikaya' },
   ]},
 ];
 
@@ -155,7 +155,7 @@ function BomNode({ id, data }) {
                     {grp.items.map(nt => (
                       <button key={nt.id} onClick={e => {
                         e.stopPropagation();
-                        data._onNakliyeSec?.(id, nt.label, grp.grup === 'Dogrudan Teslim' ? 'ic_depo' : 'nakliye');
+                        data._onNakliyeSec?.(id, nt.label, grp.grup === 'Direkt Fabrikaya' ? 'ic_depo' : 'nakliye');
                         setMenuOpen(false);
                       }} style={{
                         display: 'flex', alignItems: 'center', gap: 7, padding: '6px 12px', width: '100%', border: 'none',
@@ -166,7 +166,7 @@ function BomNode({ id, data }) {
                         onMouseEnter={e => e.currentTarget.style.background = `color-mix(in srgb, ${renk} 10%, transparent)`}
                         onMouseLeave={e => e.currentTarget.style.background = data.nakliyeTur === nt.label ? `color-mix(in srgb, ${renk} 15%, transparent)` : 'transparent'}
                       >
-                        <span>{grp.grup === 'Dogrudan Teslim' ? '\uD83C\uDFE2' : '\uD83D\uDE9A'}</span>
+                        <span>{grp.grup === 'Direkt Fabrikaya' ? '\uD83C\uDFE2' : '\uD83D\uDE9A'}</span>
                         <span>{nt.label}</span>
                         {data.nakliyeTur === nt.label && <span style={{ marginLeft: 'auto', color: C.mint }}>{'\u2713'}</span>}
                       </button>
@@ -391,7 +391,7 @@ function InnerFlow({ urun, bomPalette, yarimamulList, allKalemler }) {
         newData.bomTip = yeniBomTip;
         newData.renk = TIP[yeniBomTip]?.renk || n.data.renk;
         newData.ikon = TIP[yeniBomTip]?.ikon || n.data.ikon;
-        newData.label = yeniBomTip === 'ic_depo' ? 'Dogrudan Teslim' : 'Sevkiyat';
+        newData.label = yeniBomTip === 'ic_depo' ? 'Direkt Fabrikaya' : 'Sevkiyat';
       }
       return { ...n, data: newData };
     }));
@@ -695,8 +695,8 @@ function InnerFlow({ urun, bomPalette, yarimamulList, allKalemler }) {
           <div style={{ padding: '6px 10px', borderTop: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 7, fontWeight: 700, color: C.muted, fontFamily: F, letterSpacing: '.6px', textTransform: 'uppercase', padding: '4px 4px 2px' }}>Lojistik</div>
             {[
-              { bomTip: 'nakliye', label: 'Sevkiyat', sub: 'Kargo, nakliyeci, firma...', ikon: TIP.nakliye.ikon, renk: TIP.nakliye.renk },
-              { bomTip: 'ic_depo', label: 'Dogrudan Teslim', sub: 'Bizim arac, depoda mevcut', ikon: TIP.ic_depo.ikon, renk: TIP.ic_depo.renk },
+              { bomTip: 'nakliye', label: 'Sevkiyat', sub: 'Kargo, nakliye, kurye...', ikon: TIP.nakliye.ikon, renk: TIP.nakliye.renk },
+              { bomTip: 'ic_depo', label: 'Direkt Fabrikaya', sub: 'Dogrudan atoly eye gelir', ikon: TIP.ic_depo.ikon, renk: TIP.ic_depo.renk },
             ].map(t => (
               <div key={t.bomTip}
                 draggable
