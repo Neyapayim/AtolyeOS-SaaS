@@ -64,29 +64,44 @@ const nid = () => `n_${++_c}`;
 function BomNode({ id, data }) {
   const renk = data.renk || C.cyan;
   const vState = data._v;
-  const cls = vState === 'ok' ? 'akis-ok' : vState === 'fail' ? 'akis-fail' : '';
   const isCompound = data.bomTip === 'yarimamul' || data.bomTip === 'urun';
   const isNakliye = data.bomTip === 'nakliye';
   const subItems = data._subItems || [];
   const matchedIds = data._matchedKalemIds || new Set();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Tamamlanma orani (compound node'lar icin)
+  const total = subItems.length;
+  const matched = total > 0 ? subItems.filter(si => matchedIds.has(si.kalemId)).length : 0;
+  const ratio = total > 0 ? matched / total : 0;
+  const isComplete = total > 0 && matched === total;
+  const isPartial = matched > 0 && !isComplete;
+
+  // Renk: tamamen tamamlandi = guclu yesil, kismi = soluk yesil, fail = kirmizi, bos = default
+  const effectiveV = isCompound
+    ? (isComplete ? 'complete' : isPartial ? 'partial' : (vState === 'fail' ? 'fail' : null))
+    : vState;
+  const cls = effectiveV === 'complete' ? 'akis-ok' : effectiveV === 'fail' ? 'akis-fail' : '';
+  const greenIntensity = isComplete ? 12 : isPartial ? Math.round(4 + ratio * 6) : 0;
+
   return (
     <div className={cls} style={{
       minWidth: isCompound ? 200 : 155, maxWidth: isCompound ? 260 : 210,
-      background: vState === 'ok' ? `color-mix(in srgb, ${C.mint} 8%, ${C.s2})`
-        : vState === 'fail' ? `color-mix(in srgb, ${C.coral} 6%, ${C.s2})`
+      background: effectiveV === 'complete' ? `color-mix(in srgb, ${C.mint} ${greenIntensity}%, ${C.s2})`
+        : effectiveV === 'partial' ? `color-mix(in srgb, ${C.mint} ${greenIntensity}%, ${C.s2})`
+        : effectiveV === 'fail' ? `color-mix(in srgb, ${C.coral} 6%, ${C.s2})`
+        : vState === 'ok' ? `color-mix(in srgb, ${C.mint} 8%, ${C.s2})`
         : `color-mix(in srgb, ${renk} 5%, ${C.s2})`,
-      border: `1px solid ${vState === 'ok' ? C.mint : vState === 'fail' ? C.coral : `color-mix(in srgb, ${renk} 22%, transparent)`}`,
+      border: `1px solid ${effectiveV === 'complete' ? C.mint : effectiveV === 'partial' ? `color-mix(in srgb, ${C.mint} ${Math.round(30 + ratio * 70)}%, transparent)` : effectiveV === 'fail' ? C.coral : vState === 'ok' ? C.mint : `color-mix(in srgb, ${renk} 22%, transparent)`}`,
       borderRadius: 14, fontFamily: FB,
       backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,.06)',
-      transition: 'border-color .3s, background .3s',
+      boxShadow: isComplete ? `0 0 16px color-mix(in srgb, ${C.mint} 25%, transparent), inset 0 1px 0 rgba(255,255,255,.08)` : 'inset 0 1px 0 rgba(255,255,255,.06)',
+      transition: 'border-color .3s, background .3s, box-shadow .3s',
       position: 'relative',
     }}>
       <div className="akis-bar" style={{
         height: 2, borderRadius: '14px 14px 0 0',
-        background: `linear-gradient(90deg, ${renk}, transparent)`,
+        background: isComplete ? `linear-gradient(90deg, ${C.mint}, ${C.mint}40)` : isPartial ? `linear-gradient(90deg, ${C.mint} ${ratio * 100}%, ${renk}40 ${ratio * 100}%)` : `linear-gradient(90deg, ${renk}, transparent)`,
         transition: 'background .3s',
       }} />
       <div style={{ padding: '10px 13px 8px' }}>
@@ -96,8 +111,13 @@ function BomNode({ id, data }) {
             <div style={{ fontSize: 11, fontWeight: 700, color: C.text, fontFamily: F, letterSpacing: '-0.3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.label}</div>
             {data.miktar != null && <div style={{ fontSize: 8, color: C.muted, marginTop: 1 }}>{data.miktar} {data.birim || ''}</div>}
           </div>
-          {vState === 'ok' && <span style={{ fontSize: 12, color: C.mint, fontWeight: 800, textShadow: `0 0 8px ${C.mint}66` }}>{'\u2713'}</span>}
-          {vState === 'fail' && <span style={{ fontSize: 12, color: C.coral, fontWeight: 800, textShadow: `0 0 8px ${C.coral}66` }}>{'\u2717'}</span>}
+          {isCompound && total > 0 && (
+            isComplete
+              ? <span style={{ fontSize: 13, color: C.mint, fontWeight: 800, textShadow: `0 0 10px ${C.mint}88` }}>{'\u2713'}</span>
+              : <span style={{ fontSize: 8, color: isPartial ? C.mint : C.muted, fontWeight: 700, fontFamily: F, opacity: isPartial ? 0.6 + ratio * 0.4 : 0.4 }}>{matched}/{total}</span>
+          )}
+          {!isCompound && vState === 'ok' && <span style={{ fontSize: 12, color: C.mint, fontWeight: 800, textShadow: `0 0 8px ${C.mint}66` }}>{'\u2713'}</span>}
+          {!isCompound && vState === 'fail' && <span style={{ fontSize: 12, color: C.coral, fontWeight: 800, textShadow: `0 0 8px ${C.coral}66` }}>{'\u2717'}</span>}
         </div>
         <div style={{ display: 'inline-block', marginTop: 4, padding: '2px 7px', borderRadius: 5, background: `color-mix(in srgb, ${renk} 14%, transparent)`, fontSize: 7, fontWeight: 700, color: renk, fontFamily: F, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
           {TIP[data.bomTip]?.label || data.bomTip}{isNakliye && data.nakliyeTur ? ` \u2022 ${data.nakliyeTur}` : ''}
@@ -546,11 +566,39 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
 
   const onEdgesDelete = useCallback(() => {}, []);
 
+  // ── Eksik baglanti kontrolu ──
+  const eksikKontrol = useMemo(() => {
+    const eksikler = [];
+    nodes.forEach(n => {
+      const bt = n.data?.bomTip;
+      if (bt !== 'yarimamul' && bt !== 'urun') return;
+      const si = subItemsMap[n.id] || [];
+      if (si.length === 0) return;
+      const matched = vNodes[n.id]?.matchedKalemIds || new Set();
+      const eksik = si.filter(s => !matched.has(s.kalemId));
+      if (eksik.length > 0) eksikler.push({ label: n.data.label, eksik });
+    });
+    return eksikler;
+  }, [nodes, subItemsMap, vNodes]);
+
+  const [saveMsg, setSaveMsg] = useState(null);
+
   // ── Kaydet + Kapat ──
   const handleKaydet = useCallback(() => {
-    kaydet();
-    setIsEditing(false);
-  }, [kaydet]);
+    if (eksikKontrol.length > 0) {
+      const msg = eksikKontrol.map(e =>
+        `${e.label}: ${e.eksik.map(x => x.label).join(', ')}`
+      ).join('\n');
+      setSaveMsg(msg);
+      // Yine de kaydet — uyari bilgilendirme amacli
+      kaydet();
+      setTimeout(() => setSaveMsg(null), 6000);
+    } else {
+      kaydet();
+      setIsEditing(false);
+      setSaveMsg(null);
+    }
+  }, [kaydet, eksikKontrol]);
 
   // ── Temizle ──
   const tumuTemizle = useCallback(() => {
@@ -696,6 +744,25 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
             </button>
           )}
         </div>
+
+        {/* Eksik baglanti uyarisi */}
+        {saveMsg && (
+          <div style={{
+            padding: '10px 18px', borderBottom: `1px solid color-mix(in srgb, ${C.gold} 25%, transparent)`,
+            background: `color-mix(in srgb, ${C.gold} 6%, transparent)`,
+            fontSize: 10, color: C.gold, fontFamily: FB, lineHeight: 1.5,
+          }}>
+            <div style={{ fontWeight: 700, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+              {'\u26A0\uFE0F'} Eksik baglantilar var — kaydedildi ama tamamlanmadi:
+              <button onClick={() => setSaveMsg(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: C.muted, cursor: 'pointer', fontSize: 12 }}>{'\u2715'}</button>
+            </div>
+            {saveMsg.split('\n').map((line, i) => (
+              <div key={i} style={{ paddingLeft: 8, color: C.sub }}>
+                {'\u2022'} <span style={{ color: C.text, fontWeight: 600 }}>{line.split(':')[0]}</span>: <span style={{ color: C.coral }}>{line.split(':').slice(1).join(':')}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Canvas */}
         <div ref={wrapperRef} style={{ flex: 1, minHeight: 0, position: 'relative' }} onDragOver={onDragOver} onDrop={onDrop}>
