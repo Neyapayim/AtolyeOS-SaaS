@@ -46,20 +46,19 @@ const TIP = {
   hizmet_ic:    { ikon: '\uD83D\uDC64', label: 'Ic Iscilik',  renk: C.gold },
   hizmet_fason: { ikon: '\uD83C\uDFED', label: 'Fason',       renk: C.lav },
   nakliye:      { ikon: '\uD83D\uDE9A', label: 'Nakliye',     renk: C.orange },
-  ic_depo:      { ikon: '\uD83C\uDFE0', label: 'Ic Depo',     renk: C.sky },
+  ic_depo:      { ikon: '\uD83C\uDFE2', label: 'Dogrudan Teslim', renk: C.sky },
   urun:         { ikon: '\uD83C\uDFAF', label: 'Nihai Urun',  renk: C.mint },
 };
 
 const NAKLIYE_TURLERI = [
-  { grup: 'Ara Nakliye', items: [
+  { grup: 'Sevkiyat', items: [
     { id: 'firma_getirir',  label: 'Firma Getirir' },
     { id: 'kargo',          label: 'Kargo' },
+    { id: 'nakliyeci',      label: 'Nakliyeci' },
     { id: 'kurye',          label: 'Kurye' },
-    { id: 'dis_nakliyeci',  label: 'Dis Nakliyeci' },
   ]},
-  { grup: 'Ic Depo', items: [
+  { grup: 'Dogrudan Teslim', items: [
     { id: 'bizim_arac',     label: 'Bizim Arac' },
-    { id: 'musteri_alir',   label: 'Musteri Alir' },
     { id: 'depoda',         label: 'Depoda Mevcut' },
   ]},
 ];
@@ -142,7 +141,7 @@ function BomNode({ id, data }) {
               color: data.nakliyeTur ? renk : C.muted, cursor: 'pointer', fontFamily: FB, textAlign: 'left',
               display: 'flex', alignItems: 'center', gap: 4,
             }}>
-              <span>{data.bomTip === 'ic_depo' ? '\uD83C\uDFE0' : '\uD83D\uDE9A'}</span>
+              <span>{data.bomTip === 'ic_depo' ? '\uD83C\uDFE2' : '\uD83D\uDE9A'}</span>
               <span>{data.nakliyeTur || 'Tur sec...'}</span>
               <span style={{ marginLeft: 'auto', fontSize: 7 }}>{menuOpen ? '\u25B4' : '\u25BE'}</span>
             </button>
@@ -156,7 +155,7 @@ function BomNode({ id, data }) {
                     {grp.items.map(nt => (
                       <button key={nt.id} onClick={e => {
                         e.stopPropagation();
-                        data._onNakliyeSec?.(id, nt.label, grp.grup === 'Ic Depo' ? 'ic_depo' : 'nakliye');
+                        data._onNakliyeSec?.(id, nt.label, grp.grup === 'Dogrudan Teslim' ? 'ic_depo' : 'nakliye');
                         setMenuOpen(false);
                       }} style={{
                         display: 'flex', alignItems: 'center', gap: 7, padding: '6px 12px', width: '100%', border: 'none',
@@ -167,7 +166,7 @@ function BomNode({ id, data }) {
                         onMouseEnter={e => e.currentTarget.style.background = `color-mix(in srgb, ${renk} 10%, transparent)`}
                         onMouseLeave={e => e.currentTarget.style.background = data.nakliyeTur === nt.label ? `color-mix(in srgb, ${renk} 15%, transparent)` : 'transparent'}
                       >
-                        <span>{grp.grup === 'Ic Depo' ? '\uD83C\uDFE0' : '\uD83D\uDE9A'}</span>
+                        <span>{grp.grup === 'Dogrudan Teslim' ? '\uD83C\uDFE2' : '\uD83D\uDE9A'}</span>
                         <span>{nt.label}</span>
                         {data.nakliyeTur === nt.label && <span style={{ marginLeft: 'auto', color: C.mint }}>{'\u2713'}</span>}
                       </button>
@@ -392,7 +391,7 @@ function InnerFlow({ urun, bomPalette, yarimamulList, allKalemler }) {
         newData.bomTip = yeniBomTip;
         newData.renk = TIP[yeniBomTip]?.renk || n.data.renk;
         newData.ikon = TIP[yeniBomTip]?.ikon || n.data.ikon;
-        newData.label = yeniBomTip === 'ic_depo' ? 'Ic Depo' : 'Nakliye';
+        newData.label = yeniBomTip === 'ic_depo' ? 'Dogrudan Teslim' : 'Sevkiyat';
       }
       return { ...n, data: newData };
     }));
@@ -696,8 +695,8 @@ function InnerFlow({ urun, bomPalette, yarimamulList, allKalemler }) {
           <div style={{ padding: '6px 10px', borderTop: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 7, fontWeight: 700, color: C.muted, fontFamily: F, letterSpacing: '.6px', textTransform: 'uppercase', padding: '4px 4px 2px' }}>Lojistik</div>
             {[
-              { bomTip: 'nakliye', label: 'Ara Nakliye', sub: 'Kargo, kurye, firma...', ikon: TIP.nakliye.ikon, renk: TIP.nakliye.renk },
-              { bomTip: 'ic_depo', label: 'Ic Depo', sub: 'Direkt bize geliyor', ikon: TIP.ic_depo.ikon, renk: TIP.ic_depo.renk },
+              { bomTip: 'nakliye', label: 'Sevkiyat', sub: 'Kargo, nakliyeci, firma...', ikon: TIP.nakliye.ikon, renk: TIP.nakliye.renk },
+              { bomTip: 'ic_depo', label: 'Dogrudan Teslim', sub: 'Bizim arac, depoda mevcut', ikon: TIP.ic_depo.ikon, renk: TIP.ic_depo.renk },
             ].map(t => (
               <div key={t.bomTip}
                 draggable
