@@ -676,13 +676,15 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
             onEdgesDelete={onEdgesDelete}
             nodeTypes={nodeTypes}
             fitView snapToGrid snapGrid={[20, 20]}
-            deleteKeyCode="Delete"
+            deleteKeyCode={['Delete', 'Backspace']}
+            edgesReconnectable
             proOptions={{ hideAttribution: true }}
             style={{ background: bgColor }}
             defaultEdgeOptions={{
               animated: true,
               style: { stroke: C.cyan, strokeWidth: 2 },
               markerEnd: { type: MarkerType.ArrowClosed, color: C.cyan },
+              interactionWidth: 20,
             }}
           >
             <Background variant="dots" gap={20} size={1} color={gridColor} />
