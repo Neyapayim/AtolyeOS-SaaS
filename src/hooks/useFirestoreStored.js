@@ -81,6 +81,20 @@ export function useFirestoreStored(key, init) {
                 }
               } catch {}
             } else {
+              // KORUMA: Cloud'dan gelen veri bossa ama localStorage'daki doluysa, EZME
+              try {
+                const localStr = localStorage.getItem(fullKey);
+                if (localStr) {
+                  const localData = JSON.parse(localStr);
+                  const localHasData = Array.isArray(localData) ? localData.length > 0 : (localData && typeof localData === 'object' && Object.keys(localData).length > 0);
+                  const cloudHasData = Array.isArray(cloudData) ? cloudData.length > 0 : (cloudData && typeof cloudData === 'object' && Object.keys(cloudData).length > 0);
+                  if (localHasData && !cloudHasData) {
+                    // localStorage dolu, cloud bos → cloud'u onar, localStorage'i KORU
+                    setDoc(ref, { payload: localData, updatedAt: new Date().toISOString(), version: Date.now() }).catch(() => {});
+                    return;
+                  }
+                }
+              } catch {}
               setVal(cloudData);
               try { localStorage.setItem(fullKey, JSON.stringify(cloudData)); } catch {}
             }
@@ -132,9 +146,23 @@ export function useFirestoreStored(key, init) {
         if (_debounceTimers[fullKey]) clearTimeout(_debounceTimers[fullKey]);
         _debounceTimers[fullKey] = setTimeout(async () => {
           try {
-            // EK GÜVENLİK: Eğer yeni veri boş/çok küçükse ve eskisi çok doluysa bir log at veya yedekle
-            // (Şimdilik direkt history'ye yedekleyerek devam ediyoruz)
-            
+            // EK GÜVENLİK: Yeni veri bos/cok kucukse ve eskisi doluysa — ONCE yedekle
+            const nextIsEmpty = Array.isArray(next) ? next.length === 0 : (!next || (typeof next === 'object' && Object.keys(next).length === 0));
+            if (nextIsEmpty) {
+              // Mevcut cloud verisini kontrol et — doluysa YAZMAYI REDDET
+              try {
+                const snap = await getDoc(docPath(uid, key));
+                if (snap.exists()) {
+                  const existing = snap.data().payload;
+                  const existingHasData = Array.isArray(existing) ? existing.length > 0 : (existing && typeof existing === 'object' && Object.keys(existing).length > 0);
+                  if (existingHasData) {
+                    console.warn(`[Firestore] ${key}: Bos veri ile dolu cloud verisinin uzerine yazma ENGELLENDI.`);
+                    return; // YAZMA — veri kaybi onlendi
+                  }
+                }
+              } catch {}
+            }
+
             const payload = {
               payload: next,
               updatedAt: new Date().toISOString(),

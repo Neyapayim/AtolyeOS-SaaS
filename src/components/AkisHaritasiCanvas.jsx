@@ -309,23 +309,36 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
   const wrapperRef = useRef(null);
   const lastSyncRef = useRef('');
 
-  // ── Firestore'dan gelen veri degisince senkronize et (duzenleme disinda) ──
+  // ── Firestore'dan gelen veri degisince senkronize et ──
+  // KURAL: ASLA dolu veriyi bos veriyle EZME
   useEffect(() => {
-    if (isEditing) return;
-    const key = JSON.stringify(harita);
-    if (key === lastSyncRef.current) return;
+    if (isEditing) return; // duzenleme modundayken dokunma
+
+    const incoming = urun?.akisHaritasi;
+    // Gelen veri bos/undefined ise MEVCUT VERIYI KORU — silme!
+    if (!incoming || (!incoming.nodes?.length && !incoming.edges?.length)) return;
+
+    const key = JSON.stringify(incoming);
+    if (key === lastSyncRef.current) return; // ayni veri, tekrar set etme
     lastSyncRef.current = key;
-    setNodes(harita.nodes.map(n => ({ ...n, type: 'bomNode' })));
-    setEdges(harita.edges || []);
-  }, [harita, isEditing, setNodes, setEdges]);
+    setNodes(incoming.nodes.map(n => ({ ...n, type: 'bomNode' })));
+    setEdges(incoming.edges || []);
+  }, [urun?.akisHaritasi, isEditing, setNodes, setEdges]);
 
   // Paletten gizle
   const usedBomIds = useMemo(() => new Set(nodes.map(n => n.data?.bomId).filter(Boolean)), [nodes]);
   const filteredPalette = useMemo(() => bomPalette.filter(it => !usedBomIds.has(it.bomId)), [bomPalette, usedBomIds]);
 
   // ── Kaydet (sadece butonla) ──
+  // KORUMA: Bos node/edge ile mevcut akisi EZME
   const kaydet = useCallback(() => {
     if (!urun?.id) return;
+    const mevcutAkis = urun?.akisHaritasi;
+    // Eger tuval bos ama mevcut kayitli akis doluysa, KAYDETME (kazara silme onlemi)
+    if (nodes.length === 0 && mevcutAkis?.nodes?.length > 0) {
+      console.warn('[AkisHaritasi] Bos tuval ile dolu akisin uzerine yazma engellendi.');
+      return;
+    }
     setUrunler(prev => prev.map(u =>
       u.id === urun.id ? { ...u, akisHaritasi: {
         nodes: nodes.map(n => ({
@@ -335,7 +348,7 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
         edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target })),
       }} : u
     ));
-  }, [urun?.id, nodes, edges, setUrunler]);
+  }, [urun?.id, urun?.akisHaritasi, nodes, edges, setUrunler]);
 
   // ── Validation ──
   const runValidation = useCallback(() => {
