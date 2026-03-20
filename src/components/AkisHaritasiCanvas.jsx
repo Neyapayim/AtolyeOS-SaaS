@@ -44,15 +44,22 @@ const TIP = {
   hizmet_ic:    { ikon: '\uD83D\uDC64', label: 'Ic Iscilik',  renk: C.gold },
   hizmet_fason: { ikon: '\uD83C\uDFED', label: 'Fason',       renk: C.lav },
   nakliye:      { ikon: '\uD83D\uDE9A', label: 'Nakliye',     renk: C.orange },
+  ic_depo:      { ikon: '\uD83C\uDFE0', label: 'Ic Depo',     renk: C.sky },
   urun:         { ikon: '\uD83C\uDFAF', label: 'Nihai Urun',  renk: C.mint },
 };
 
 const NAKLIYE_TURLERI = [
-  { id: 'firma_getirir', label: 'Firma Getirir' },
-  { id: 'kargo',         label: 'Kargo' },
-  { id: 'bizim_arac',    label: 'Bizim Arac' },
-  { id: 'kurye',         label: 'Kurye' },
-  { id: 'musteri_alir',  label: 'Musteri Alir' },
+  { grup: 'Ara Nakliye', items: [
+    { id: 'firma_getirir',  label: 'Firma Getirir' },
+    { id: 'kargo',          label: 'Kargo' },
+    { id: 'kurye',          label: 'Kurye' },
+    { id: 'dis_nakliyeci',  label: 'Dis Nakliyeci' },
+  ]},
+  { grup: 'Ic Depo', items: [
+    { id: 'bizim_arac',     label: 'Bizim Arac' },
+    { id: 'musteri_alir',   label: 'Musteri Alir' },
+    { id: 'depoda',         label: 'Depoda Mevcut' },
+  ]},
 ];
 
 let _c = Date.now();
@@ -65,7 +72,7 @@ function BomNode({ id, data }) {
   const renk = data.renk || C.cyan;
   const vState = data._v;
   const isCompound = data.bomTip === 'yarimamul' || data.bomTip === 'urun';
-  const isNakliye = data.bomTip === 'nakliye';
+  const isNakliye = data.bomTip === 'nakliye' || data.bomTip === 'ic_depo';
   const subItems = data._subItems || [];
   const matchedIds = data._matchedKalemIds || new Set();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -123,33 +130,47 @@ function BomNode({ id, data }) {
           {TIP[data.bomTip]?.label || data.bomTip}{isNakliye && data.nakliyeTur ? ` \u2022 ${data.nakliyeTur}` : ''}
         </div>
 
-        {/* Nakliye tur secimi */}
-        {isNakliye && (
+        {/* Nakliye / Ic Depo tur secimi */}
+        {(isNakliye || data.bomTip === 'ic_depo') && (
           <div style={{ marginTop: 5 }}>
             <button onClick={e => { e.stopPropagation(); setMenuOpen(v => !v); }} style={{
               padding: '3px 8px', borderRadius: 6, fontSize: 8, fontWeight: 600, width: '100%',
-              background: data.nakliyeTur ? `color-mix(in srgb, ${C.orange} 12%, transparent)` : `color-mix(in srgb, ${C.muted} 8%, transparent)`,
-              border: `1px solid ${data.nakliyeTur ? `color-mix(in srgb, ${C.orange} 25%, transparent)` : C.border}`,
-              color: data.nakliyeTur ? C.orange : C.muted, cursor: 'pointer', fontFamily: FB, textAlign: 'left',
+              background: data.nakliyeTur ? `color-mix(in srgb, ${renk} 12%, transparent)` : `color-mix(in srgb, ${C.muted} 8%, transparent)`,
+              border: `1px solid ${data.nakliyeTur ? `color-mix(in srgb, ${renk} 25%, transparent)` : C.border}`,
+              color: data.nakliyeTur ? renk : C.muted, cursor: 'pointer', fontFamily: FB, textAlign: 'left',
               display: 'flex', alignItems: 'center', gap: 4,
             }}>
-              <span>{'\uD83D\uDE9A'}</span><span>{data.nakliyeTur || 'Tur sec...'}</span>
+              <span>{data.bomTip === 'ic_depo' ? '\uD83C\uDFE0' : '\uD83D\uDE9A'}</span>
+              <span>{data.nakliyeTur || 'Tur sec...'}</span>
               <span style={{ marginLeft: 'auto', fontSize: 7 }}>{menuOpen ? '\u25B4' : '\u25BE'}</span>
             </button>
             {menuOpen && (
-              <div style={{ position: 'absolute', left: 8, right: 8, top: '100%', marginTop: 3, background: C.s3, border: `1px solid ${C.borderHi}`, borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,.5)', zIndex: 50, overflow: 'hidden' }}>
-                {NAKLIYE_TURLERI.map(nt => (
-                  <button key={nt.id} onClick={e => { e.stopPropagation(); data._onNakliyeSec?.(id, nt.label); setMenuOpen(false); }} style={{
-                    display: 'flex', alignItems: 'center', gap: 7, padding: '7px 12px', width: '100%', border: 'none',
-                    background: data.nakliyeTur === nt.label ? `color-mix(in srgb, ${C.orange} 15%, transparent)` : 'transparent',
-                    color: data.nakliyeTur === nt.label ? C.orange : C.text, fontSize: 10, fontWeight: data.nakliyeTur === nt.label ? 700 : 400,
-                    cursor: 'pointer', fontFamily: FB, borderBottom: `1px solid ${C.border}`, transition: 'background .12s',
-                  }}
-                    onMouseEnter={e => e.currentTarget.style.background = `color-mix(in srgb, ${C.orange} 10%, transparent)`}
-                    onMouseLeave={e => e.currentTarget.style.background = data.nakliyeTur === nt.label ? `color-mix(in srgb, ${C.orange} 15%, transparent)` : 'transparent'}
-                  ><span>{'\uD83D\uDE9A'}</span><span>{nt.label}</span>
-                    {data.nakliyeTur === nt.label && <span style={{ marginLeft: 'auto', color: C.mint }}>{'\u2713'}</span>}
-                  </button>
+              <div style={{ position: 'absolute', left: 8, right: 8, top: '100%', marginTop: 3, background: C.s3, border: `1px solid ${C.borderHi}`, borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,.5)', zIndex: 50, overflow: 'hidden', maxHeight: 200, overflowY: 'auto' }}>
+                {NAKLIYE_TURLERI.map(grp => (
+                  <div key={grp.grup}>
+                    <div style={{ padding: '5px 12px 3px', fontSize: 7, fontWeight: 700, color: C.muted, letterSpacing: '.5px', textTransform: 'uppercase', borderBottom: `1px solid ${C.border}`, background: 'rgba(255,255,255,.02)' }}>
+                      {grp.grup}
+                    </div>
+                    {grp.items.map(nt => (
+                      <button key={nt.id} onClick={e => {
+                        e.stopPropagation();
+                        data._onNakliyeSec?.(id, nt.label, grp.grup === 'Ic Depo' ? 'ic_depo' : 'nakliye');
+                        setMenuOpen(false);
+                      }} style={{
+                        display: 'flex', alignItems: 'center', gap: 7, padding: '6px 12px', width: '100%', border: 'none',
+                        background: data.nakliyeTur === nt.label ? `color-mix(in srgb, ${renk} 15%, transparent)` : 'transparent',
+                        color: data.nakliyeTur === nt.label ? renk : C.text, fontSize: 10, fontWeight: data.nakliyeTur === nt.label ? 700 : 400,
+                        cursor: 'pointer', fontFamily: FB, borderBottom: `1px solid ${C.border}`, transition: 'background .12s',
+                      }}
+                        onMouseEnter={e => e.currentTarget.style.background = `color-mix(in srgb, ${renk} 10%, transparent)`}
+                        onMouseLeave={e => e.currentTarget.style.background = data.nakliyeTur === nt.label ? `color-mix(in srgb, ${renk} 15%, transparent)` : 'transparent'}
+                      >
+                        <span>{grp.grup === 'Ic Depo' ? '\uD83C\uDFE0' : '\uD83D\uDE9A'}</span>
+                        <span>{nt.label}</span>
+                        {data.nakliyeTur === nt.label && <span style={{ marginLeft: 'auto', color: C.mint }}>{'\u2713'}</span>}
+                      </button>
+                    ))}
+                  </div>
                 ))}
               </div>
             )}
@@ -249,7 +270,7 @@ function validateGraph(nodes, edges, yarimamulList, urun) {
         const srcKalem = src.data?.kalemId;
         const edgeId = edges.find(e => e.source === srcId && e.target === cur)?.id;
 
-        if (srcBt === 'nakliye') {
+        if (srcBt === 'nakliye' || srcBt === 'ic_depo') {
           // Nakliye = kopru, devam et
           if (edgeId) edgeStatuses[edgeId] = 'ok';
           queue.push(srcId);
@@ -361,8 +382,19 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
   useEffect(() => { runValidation(); }, [nodes, edges, runValidation]);
 
   // ── Nakliye handlers ──
-  const onNakliyeSec = useCallback((nodeId, turLabel) => {
-    setNodes(nds => nds.map(n => n.id === nodeId ? { ...n, data: { ...n.data, nakliyeTur: turLabel } } : n));
+  const onNakliyeSec = useCallback((nodeId, turLabel, yeniBomTip) => {
+    setNodes(nds => nds.map(n => {
+      if (n.id !== nodeId) return n;
+      const newData = { ...n.data, nakliyeTur: turLabel };
+      // Ic Depo secildiyse bomTip ve renk/ikon degistir
+      if (yeniBomTip && yeniBomTip !== n.data.bomTip) {
+        newData.bomTip = yeniBomTip;
+        newData.renk = TIP[yeniBomTip]?.renk || n.data.renk;
+        newData.ikon = TIP[yeniBomTip]?.ikon || n.data.ikon;
+        newData.label = yeniBomTip === 'ic_depo' ? 'Ic Depo' : 'Nakliye';
+      }
+      return { ...n, data: newData };
+    }));
   }, [setNodes]);
 
   // ── Otomatik Akis Olustur ──
@@ -565,8 +597,8 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
     const raw = e.dataTransfer.getData('application/akis-bom');
     if (!raw) return;
     const item = JSON.parse(raw);
-    // Nakliye: her drop'ta benzersiz bomId olustur (sinirsiz ekleme)
-    if (item.bomTip === 'nakliye') item.bomId = `nakliye_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    // Nakliye/Ic Depo: her drop'ta benzersiz bomId olustur (sinirsiz ekleme)
+    if (item.bomTip === 'nakliye' || item.bomTip === 'ic_depo') item.bomId = `${item.bomTip}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
     setNodes(nds => [...nds, { id: nid(), type: 'bomNode', position: pos, data: item }]);
   }, [isEditing, screenToFlowPosition, setNodes]);
@@ -658,36 +690,41 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
                 ))
             )}
           </div>
-          {/* Nakliye surukle-birak (kaybolmaz, sinirsiz) */}
+          {/* Lojistik kartlari (kaybolmaz, sinirsiz) */}
           <div style={{ padding: '6px 10px', borderTop: `1px solid ${C.border}` }}>
-            <div style={{ fontSize: 7, fontWeight: 700, color: C.muted, fontFamily: F, letterSpacing: '.6px', textTransform: 'uppercase', padding: '4px 4px 2px' }}>Nakliye</div>
-            <div
-              draggable
-              onDragStart={e => {
-                e.dataTransfer.setData('application/akis-bom', JSON.stringify({
-                  bomId: `nakliye_${Date.now()}`, bomTip: 'nakliye',
-                  label: 'Nakliye', ikon: TIP.nakliye.ikon, renk: TIP.nakliye.renk,
-                }));
-                e.dataTransfer.effectAllowed = 'move';
-                e.currentTarget.style.opacity = '0.5';
-              }}
-              onDragEnd={e => { e.currentTarget.style.opacity = '1'; }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 9px', marginBottom: 3, borderRadius: 9,
-                background: `color-mix(in srgb, ${C.orange} 5%, transparent)`,
-                border: `1px solid color-mix(in srgb, ${C.orange} 14%, transparent)`,
-                cursor: 'grab', transition: 'all .15s', userSelect: 'none',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = `color-mix(in srgb, ${C.orange} 14%, transparent)`; e.currentTarget.style.borderColor = `color-mix(in srgb, ${C.orange} 35%, transparent)`; e.currentTarget.style.transform = 'translateX(3px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = `color-mix(in srgb, ${C.orange} 5%, transparent)`; e.currentTarget.style.borderColor = `color-mix(in srgb, ${C.orange} 14%, transparent)`; e.currentTarget.style.transform = 'translateX(0)'; }}
-            >
-              <span style={{ fontSize: 12 }}>{'\uD83D\uDE9A'}</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 9, fontWeight: 600, color: C.text }}>Nakliye</div>
-                <div style={{ fontSize: 7, color: C.muted }}>Sinirsiz eklenebilir</div>
+            <div style={{ fontSize: 7, fontWeight: 700, color: C.muted, fontFamily: F, letterSpacing: '.6px', textTransform: 'uppercase', padding: '4px 4px 2px' }}>Lojistik</div>
+            {[
+              { bomTip: 'nakliye', label: 'Ara Nakliye', sub: 'Kargo, kurye, firma...', ikon: TIP.nakliye.ikon, renk: TIP.nakliye.renk },
+              { bomTip: 'ic_depo', label: 'Ic Depo', sub: 'Direkt bize geliyor', ikon: TIP.ic_depo.ikon, renk: TIP.ic_depo.renk },
+            ].map(t => (
+              <div key={t.bomTip}
+                draggable
+                onDragStart={e => {
+                  e.dataTransfer.setData('application/akis-bom', JSON.stringify({
+                    bomId: `${t.bomTip}_${Date.now()}`, bomTip: t.bomTip,
+                    label: t.label, ikon: t.ikon, renk: t.renk,
+                  }));
+                  e.dataTransfer.effectAllowed = 'move';
+                  e.currentTarget.style.opacity = '0.5';
+                }}
+                onDragEnd={e => { e.currentTarget.style.opacity = '1'; }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 9px', marginBottom: 3, borderRadius: 9,
+                  background: `color-mix(in srgb, ${t.renk} 5%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${t.renk} 14%, transparent)`,
+                  cursor: 'grab', transition: 'all .15s', userSelect: 'none',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = `color-mix(in srgb, ${t.renk} 14%, transparent)`; e.currentTarget.style.borderColor = `color-mix(in srgb, ${t.renk} 35%, transparent)`; e.currentTarget.style.transform = 'translateX(3px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = `color-mix(in srgb, ${t.renk} 5%, transparent)`; e.currentTarget.style.borderColor = `color-mix(in srgb, ${t.renk} 14%, transparent)`; e.currentTarget.style.transform = 'translateX(0)'; }}
+              >
+                <span style={{ fontSize: 12 }}>{t.ikon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 9, fontWeight: 600, color: C.text }}>{t.label}</div>
+                  <div style={{ fontSize: 7, color: C.muted }}>{t.sub}</div>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
           {/* Temizle */}
           <div style={{ padding: '4px 10px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
