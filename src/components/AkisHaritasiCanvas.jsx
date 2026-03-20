@@ -321,14 +321,6 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
     setNodes(nds => nds.map(n => n.id === nodeId ? { ...n, data: { ...n.data, nakliyeTur: turLabel } } : n));
   }, [setNodes]);
 
-  const nakliyeEkle = useCallback(() => {
-    const pos = { x: 200 + Math.random() * 100, y: 100 + nodes.length * 60 };
-    setNodes(nds => [...nds, {
-      id: nid(), type: 'bomNode', position: pos,
-      data: { bomId: `nakliye_${Date.now()}`, bomTip: 'nakliye', label: 'Nakliye', ikon: TIP.nakliye.ikon, renk: TIP.nakliye.renk },
-    }]);
-  }, [nodes.length, setNodes]);
-
   // ── Otomatik Akis Olustur ──
   // 5 katmanli layout: HM → Iscilik/Fason(YM) → YM → Iscilik/Fason(Urun) → Urun
   // Hammaddeler iscilik/fasondan SUZULEREK yari mamule donusur
@@ -529,6 +521,8 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
     const raw = e.dataTransfer.getData('application/akis-bom');
     if (!raw) return;
     const item = JSON.parse(raw);
+    // Nakliye: her drop'ta benzersiz bomId olustur (sinirsiz ekleme)
+    if (item.bomTip === 'nakliye') item.bomId = `nakliye_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
     setNodes(nds => [...nds, { id: nid(), type: 'bomNode', position: pos, data: item }]);
   }, [isEditing, screenToFlowPosition, setNodes]);
@@ -592,10 +586,39 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
                 ))
             )}
           </div>
-          <div style={{ padding: '8px 10px', borderTop: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <button onClick={nakliyeEkle} style={{ padding: '7px 10px', borderRadius: 8, width: '100%', background: `color-mix(in srgb, ${C.orange} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${C.orange} 20%, transparent)`, color: C.orange, fontSize: 9, fontWeight: 600, cursor: 'pointer', fontFamily: FB, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-              <span>{'\uD83D\uDE9A'}</span> Nakliye Ekle
-            </button>
+          {/* Nakliye surukle-birak (kaybolmaz, sinirsiz) */}
+          <div style={{ padding: '6px 10px', borderTop: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 7, fontWeight: 700, color: C.muted, fontFamily: F, letterSpacing: '.6px', textTransform: 'uppercase', padding: '4px 4px 2px' }}>Nakliye</div>
+            <div
+              draggable
+              onDragStart={e => {
+                e.dataTransfer.setData('application/akis-bom', JSON.stringify({
+                  bomId: `nakliye_${Date.now()}`, bomTip: 'nakliye',
+                  label: 'Nakliye', ikon: TIP.nakliye.ikon, renk: TIP.nakliye.renk,
+                }));
+                e.dataTransfer.effectAllowed = 'move';
+                e.currentTarget.style.opacity = '0.5';
+              }}
+              onDragEnd={e => { e.currentTarget.style.opacity = '1'; }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 9px', marginBottom: 3, borderRadius: 9,
+                background: `color-mix(in srgb, ${C.orange} 5%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${C.orange} 14%, transparent)`,
+                cursor: 'grab', transition: 'all .15s', userSelect: 'none',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = `color-mix(in srgb, ${C.orange} 14%, transparent)`; e.currentTarget.style.borderColor = `color-mix(in srgb, ${C.orange} 35%, transparent)`; e.currentTarget.style.transform = 'translateX(3px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = `color-mix(in srgb, ${C.orange} 5%, transparent)`; e.currentTarget.style.borderColor = `color-mix(in srgb, ${C.orange} 14%, transparent)`; e.currentTarget.style.transform = 'translateX(0)'; }}
+            >
+              <span style={{ fontSize: 12 }}>{'\uD83D\uDE9A'}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 9, fontWeight: 600, color: C.text }}>Nakliye</div>
+                <div style={{ fontSize: 7, color: C.muted }}>Sinirsiz eklenebilir</div>
+              </div>
+            </div>
+          </div>
+          {/* Temizle */}
+          <div style={{ padding: '4px 10px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
             {nodes.length > 0 && (
               <button onClick={tumuTemizle} style={{ padding: '6px 10px', borderRadius: 8, width: '100%', background: `color-mix(in srgb, ${C.coral} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${C.coral} 18%, transparent)`, color: C.coral, fontSize: 9, fontWeight: 600, cursor: 'pointer', fontFamily: FB }}>Tuvali Temizle</button>
             )}
