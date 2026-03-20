@@ -16,6 +16,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { C, F, FB } from '../config/constants.js';
+import { useFirestoreStored } from '../hooks/useFirestoreStored.js';
 
 /* ══════════════════════════════════════════════════════════════════
    FAZ 6.3 — Duzenle/Kaydet + Bounded BFS Validation
@@ -318,11 +319,15 @@ function validateGraph(nodes, edges, yarimamulList, urun) {
 /* ═══════════════════════════════════════════
    InnerFlow
    ═══════════════════════════════════════════ */
-function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler }) {
-  const harita = urun?.akisHaritasi || { nodes: [], edges: [] };
+function InnerFlow({ urun, bomPalette, yarimamulList, allKalemler }) {
+  // ── BAGIMSIZ STORAGE: akis haritasi urunler'den ayri saklanir ──
+  const storageKey = urun?.id ? `akis_${urun.id}` : null;
+  const [savedHarita, setSavedHarita] = useFirestoreStored(storageKey || 'akis_temp', { nodes: [], edges: [] });
+  const harita = savedHarita || { nodes: [], edges: [] };
+
   const { screenToFlowPosition } = useReactFlow();
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(harita.nodes.map(n => ({ ...n, type: 'bomNode' })));
+  const [nodes, setNodes, onNodesChange] = useNodesState(harita.nodes?.map(n => ({ ...n, type: 'bomNode' })) || []);
   const [edges, setEdges, onEdgesChange] = useEdgesState(harita.edges || []);
   const [vNodes, setVNodes] = useState({});
   const [vEdges, setVEdges] = useState({});
@@ -331,45 +336,39 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
   const lastSyncRef = useRef('');
 
   // ── Firestore'dan gelen veri degisince senkronize et ──
-  // KURAL: ASLA dolu veriyi bos veriyle EZME
   useEffect(() => {
-    if (isEditing) return; // duzenleme modundayken dokunma
-
-    const incoming = urun?.akisHaritasi;
-    // Gelen veri bos/undefined ise MEVCUT VERIYI KORU — silme!
-    if (!incoming || (!incoming.nodes?.length && !incoming.edges?.length)) return;
-
+    if (isEditing) return;
+    const incoming = savedHarita;
+    if (!incoming?.nodes?.length && !incoming?.edges?.length) return;
     const key = JSON.stringify(incoming);
-    if (key === lastSyncRef.current) return; // ayni veri, tekrar set etme
+    if (key === lastSyncRef.current) return;
     lastSyncRef.current = key;
     setNodes(incoming.nodes.map(n => ({ ...n, type: 'bomNode' })));
     setEdges(incoming.edges || []);
-  }, [urun?.akisHaritasi, isEditing, setNodes, setEdges]);
+  }, [savedHarita, isEditing, setNodes, setEdges]);
 
   // Paletten gizle
   const usedBomIds = useMemo(() => new Set(nodes.map(n => n.data?.bomId).filter(Boolean)), [nodes]);
   const filteredPalette = useMemo(() => bomPalette.filter(it => !usedBomIds.has(it.bomId)), [bomPalette, usedBomIds]);
 
-  // ── Kaydet (sadece butonla) ──
-  // KORUMA: Bos node/edge ile mevcut akisi EZME
+  // ── Kaydet (sadece butonla) — BAGIMSIZ STORAGE ──
   const kaydet = useCallback(() => {
     if (!urun?.id) return;
-    const mevcutAkis = urun?.akisHaritasi;
-    // Eger tuval bos ama mevcut kayitli akis doluysa, KAYDETME (kazara silme onlemi)
-    if (nodes.length === 0 && mevcutAkis?.nodes?.length > 0) {
+    // KORUMA: tuval bos ama kayitli akis doluysa KAYDETME
+    if (nodes.length === 0 && harita?.nodes?.length > 0) {
       console.warn('[AkisHaritasi] Bos tuval ile dolu akisin uzerine yazma engellendi.');
       return;
     }
-    setUrunler(prev => prev.map(u =>
-      u.id === urun.id ? { ...u, akisHaritasi: {
-        nodes: nodes.map(n => ({
-          id: n.id, type: 'bomNode', position: n.position,
-          data: { ...n.data, _v: undefined, _subItems: undefined, _matchedKalemIds: undefined, _onNakliyeSec: undefined },
-        })),
-        edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target })),
-      }} : u
-    ));
-  }, [urun?.id, urun?.akisHaritasi, nodes, edges, setUrunler]);
+    const data = {
+      nodes: nodes.map(n => ({
+        id: n.id, type: 'bomNode', position: n.position,
+        data: { ...n.data, _v: undefined, _subItems: undefined, _matchedKalemIds: undefined, _onNakliyeSec: undefined },
+      })),
+      edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target })),
+    };
+    setSavedHarita(data);
+    lastSyncRef.current = JSON.stringify(data);
+  }, [urun?.id, nodes, edges, harita, setSavedHarita]);
 
   // ── Validation ──
   const runValidation = useCallback(() => {
@@ -884,7 +883,7 @@ function PaletItem({ item }) {
 /* ═══════════════════════════════════════════
    EXPORT
    ═══════════════════════════════════════════ */
-export default function AkisHaritasiCanvas({ urun, setUrunler, hamMaddeler = [], yarimamulList = [], hizmetler = [] }) {
+export default function AkisHaritasiCanvas({ urun, hamMaddeler = [], yarimamulList = [], hizmetler = [] }) {
   const allKalemler = useMemo(() => [...hamMaddeler, ...yarimamulList, ...hizmetler], [hamMaddeler, yarimamulList, hizmetler]);
 
   const bomPalette = useMemo(() => {
@@ -912,7 +911,7 @@ export default function AkisHaritasiCanvas({ urun, setUrunler, hamMaddeler = [],
 
   return (
     <ReactFlowProvider>
-      <InnerFlow urun={urun} setUrunler={setUrunler} bomPalette={bomPalette} yarimamulList={yarimamulList} allKalemler={allKalemler} />
+      <InnerFlow urun={urun} bomPalette={bomPalette} yarimamulList={yarimamulList} allKalemler={allKalemler} />
     </ReactFlowProvider>
   );
 }
