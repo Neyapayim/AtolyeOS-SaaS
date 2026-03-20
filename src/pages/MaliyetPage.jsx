@@ -350,8 +350,9 @@ export default function MaliyetPage({
       </div>
 
       {/* ═══════════════ AKIŞ SEKMESİ — React Flow Gorsel Tuval ═══════════════ */}
-      {malTab === "akis" && (
+      {malTab === "akis" && u?.id && (
         <AkisHaritasiCanvas
+          key={u.id}
           urun={u}
           hamMaddeler={hamMaddeler} yarimamulList={yarimamulList} hizmetler={hizmetler}
         />

@@ -52,6 +52,20 @@ export function useFirestoreStored(key, init) {
     }
   });
 
+  // ── Key degistiginde localStorage'dan yeniden oku ──
+  const prevKeyRef = useRef(fullKey);
+  useEffect(() => {
+    if (prevKeyRef.current === fullKey) return;
+    prevKeyRef.current = fullKey;
+    localWriteRef.current = false;
+    isInitializedRef.current = false;
+    try {
+      const s = localStorage.getItem(fullKey);
+      if (s) setVal(JSON.parse(s));
+      else setVal(init);
+    } catch { setVal(init); }
+  }, [fullKey]);
+
   // ── Katman 3: Firestore senkronizasyonu (uid hazir oldugunda) ──
   useEffect(() => {
     if (!uid || !db) return;

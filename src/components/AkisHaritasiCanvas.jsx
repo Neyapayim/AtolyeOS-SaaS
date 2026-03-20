@@ -322,8 +322,9 @@ function validateGraph(nodes, edges, yarimamulList, urun) {
    ═══════════════════════════════════════════ */
 function InnerFlow({ urun, bomPalette, yarimamulList, allKalemler }) {
   // ── BAGIMSIZ STORAGE: akis haritasi urunler'den ayri saklanir ──
-  const storageKey = urun?.id ? `akis_${urun.id}` : null;
-  const [savedHarita, setSavedHarita] = useFirestoreStored(storageKey || 'akis_temp', { nodes: [], edges: [] });
+  // BAGIMSIZ STORAGE: her urunun akisi kendi key'inde
+  // MaliyetPage key={u.id} ile garanti eder ki urun.id her zaman var
+  const [savedHarita, setSavedHarita] = useFirestoreStored(`akis_${urun.id}`, { nodes: [], edges: [] });
   const harita = savedHarita || { nodes: [], edges: [] };
 
   const { screenToFlowPosition } = useReactFlow();
