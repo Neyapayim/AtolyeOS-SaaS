@@ -23,8 +23,9 @@ export const getFirestoreUid = () => _currentUid;
 // ── Debounce timers (key bazli) ──
 const _debounceTimers = {};
 
-// ── Firestore doc yolu ──
+// ── Firestore doc yollari ──
 const docPath = (uid, key) => doc(db, "users", uid, "data", key);
+const historyPath = (uid, key, vid) => doc(db, "users", uid, "history", `${key}_${vid}`); // Son 3 versiyonu tutar
 
 export function useFirestoreStored(key, init) {
   const fullKey = "atolye_" + key;
@@ -37,6 +38,7 @@ export function useFirestoreStored(key, init) {
 
   // Local write flag — mount'tan sonra yerel degisiklik olduysa cloud overwrite'i engeller
   const localWriteRef = useRef(false);
+  const isInitializedRef = useRef(false); // Yeni: Buluttan ilk veri gelene kadar yazmayı engeller
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
@@ -59,14 +61,29 @@ export function useFirestoreStored(key, init) {
     getDoc(ref)
       .then(snap => {
         if (!mountedRef.current) return;
+        
+        isInitializedRef.current = true; // İlk okuma tamamlandı
 
         if (snap.exists()) {
           // ── Cloud'da veri var ──
           if (!localWriteRef.current) {
             // Kullanici mount'tan beri yerel degisiklik yapmadiysa → cloud veriyi al
-            const cloudData = snap.data().payload;
-            setVal(cloudData);
-            try { localStorage.setItem(fullKey, JSON.stringify(cloudData)); } catch {}
+            const raw = snap.data();
+            const cloudData = raw.payload !== undefined ? raw.payload : raw.value !== undefined ? raw.value : undefined;
+            // Eger cloud verisi undefined/null ise localStorage'i ezme — bozuk dokumandir
+            if (cloudData === undefined || cloudData === null) {
+              // localStorage'daki mevcut veriyi Firestore'a dogru formatla yazarak onar
+              try {
+                const localStr = localStorage.getItem(fullKey);
+                if (localStr) {
+                  const localData = JSON.parse(localStr);
+                  setDoc(ref, { payload: localData, updatedAt: new Date().toISOString(), version: Date.now() }).catch(() => {});
+                }
+              } catch {}
+            } else {
+              setVal(cloudData);
+              try { localStorage.setItem(fullKey, JSON.stringify(cloudData)); } catch {}
+            }
           } else {
             // Kullanici mount sonrasi yerel degisiklik yapti → yerel veriyi cloud'a bas
             try {
@@ -106,15 +123,35 @@ export function useFirestoreStored(key, init) {
       // Katman 3: Firestore (debounced 500ms)
       localWriteRef.current = true;
       if (uid && db) {
+        // Krititk: Eğer sistem henüz buluttan veriyi çekemediyse, üzerine yazmayı reddet!
+        if (!isInitializedRef.current) {
+          if (import.meta.env.DEV) console.log(`[Firestore] ${key} henüz yüklenmediği için yazma bekletiliyor.`);
+          return next;
+        }
+
         if (_debounceTimers[fullKey]) clearTimeout(_debounceTimers[fullKey]);
-        _debounceTimers[fullKey] = setTimeout(() => {
-          setDoc(docPath(uid, key), {
-            payload: next,
-            updatedAt: new Date().toISOString(),
-          }).catch(err => {
+        _debounceTimers[fullKey] = setTimeout(async () => {
+          try {
+            // EK GÜVENLİK: Eğer yeni veri boş/çok küçükse ve eskisi çok doluysa bir log at veya yedekle
+            // (Şimdilik direkt history'ye yedekleyerek devam ediyoruz)
+            
+            const payload = {
+              payload: next,
+              updatedAt: new Date().toISOString(),
+              version: Date.now()
+            };
+
+            // 1. Ana veriyi güncelle
+            await setDoc(docPath(uid, key), payload);
+
+            // 2. Geçmiş (History) kaydı at (Versiyonlama — son 3 adet döngüsel)
+            const vId = (Date.now() % 3); // 0, 1, 2 slotlarina yazar
+            setDoc(historyPath(uid, key, vId), payload).catch(() => {});
+            
+          } catch (err) {
             if (import.meta.env.DEV) console.warn(`[Firestore] ${key} yazma hatasi:`, err?.message);
-          });
-        }, 500);
+          }
+        }, 800);
       }
 
       return next;
