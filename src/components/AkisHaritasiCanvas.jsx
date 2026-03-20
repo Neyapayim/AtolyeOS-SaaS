@@ -287,6 +287,17 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
   const [vEdges, setVEdges] = useState({});
   const [isEditing, setIsEditing] = useState(false);
   const wrapperRef = useRef(null);
+  const lastSyncRef = useRef('');
+
+  // ── Firestore'dan gelen veri degisince senkronize et (duzenleme disinda) ──
+  useEffect(() => {
+    if (isEditing) return;
+    const key = JSON.stringify(harita);
+    if (key === lastSyncRef.current) return;
+    lastSyncRef.current = key;
+    setNodes(harita.nodes.map(n => ({ ...n, type: 'bomNode' })));
+    setEdges(harita.edges || []);
+  }, [harita, isEditing, setNodes, setEdges]);
 
   // Paletten gizle
   const usedBomIds = useMemo(() => new Set(nodes.map(n => n.data?.bomId).filter(Boolean)), [nodes]);
