@@ -12,6 +12,7 @@ import {
   MarkerType,
   Handle,
   Position,
+  ConnectionMode
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { C, F, FB } from '../config/constants.js';
@@ -574,7 +575,7 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
     <div style={{
       background: `color-mix(in srgb, ${C.bg} 92%, transparent)`,
       border: `1px solid ${C.border}`, borderRadius: 16, overflow: 'hidden',
-      display: 'flex', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.06)',
+      display: 'flex', height: 620, boxShadow: 'inset 0 1px 0 rgba(255,255,255,.06)',
     }}>
       {/* ═══ SOL PALET ═══ */}
       <div style={{
@@ -664,7 +665,7 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
           }}>{nodes.length} dugum {'\u00B7'} {edges.length} ok</div>
         </div>
 
-        <div ref={wrapperRef} style={{ flex: 1, height: 560, position: 'relative' }} onDragOver={onDragOver} onDrop={onDrop}>
+        <div ref={wrapperRef} style={{ flex: 1, minHeight: 0, position: 'relative' }} onDragOver={onDragOver} onDrop={onDrop}>
           <SwimlaneBg isDark={isDark} />
           <ReactFlow
             nodes={nodesEnriched}
@@ -678,6 +679,7 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
             fitView snapToGrid snapGrid={[20, 20]}
             deleteKeyCode={['Delete', 'Backspace']}
             edgesReconnectable
+            connectionMode={ConnectionMode.Loose}
             proOptions={{ hideAttribution: true }}
             style={{ background: bgColor }}
             defaultEdgeOptions={{
@@ -769,11 +771,16 @@ export default function AkisHaritasiCanvas({ urun, setUrunler, hamMaddeler = [],
     const explodeBom = (bom, depth) => {
       if (depth > 6 || !bom?.length) return;
       bom.forEach(b => {
-        const kalem = allKalemler.find(x => x.id === b.kalemId);
-        if (!kalem) return;
+        let kalem = allKalemler.find(x => x.id === b.kalemId || x.id === b.hizmetId);
+        // Eger tablo/state senkronizasyonunda hizmet bulunamazsa fallback
+        if (!kalem) {
+          kalem = { id: b.kalemId || b.hizmetId, ad: b.ad || b.hizmetAd || b.label || 'Bilinmeyen Kalem', tip: b.tip || 'hizmet' };
+        }
+        
         // Tekrar kontrolu: ayni kalemId zaten varsa ekleme
-        if (seen.has(b.kalemId)) return;
-        seen.add(b.kalemId);
+        const checkId = kalem.id || b.kalemId;
+        if (seen.has(checkId)) return;
+        seen.add(checkId);
 
         let bomTip = b.tip;
         if (b.tip === 'hizmet') bomTip = kalem.tip === 'fason' ? 'hizmet_fason' : 'hizmet_ic';
