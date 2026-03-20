@@ -98,40 +98,51 @@ export default function AyarlarPage({ genelAyar, setGenelAyar }) {
 
         const uid = auth.currentUser?.uid;
         let count = 0;
+        const firestorePromises = [];
 
         for (const [key, val] of entries) {
-          const parsed = typeof val === "string" ? (() => { try { return JSON.parse(val); } catch { return val; } })() : val;
-          const strVal = typeof parsed === "string" ? parsed : JSON.stringify(parsed);
+          // Eski verilerde value string olarak saklanmis olabilir — parse et
+          let parsed = val;
+          if (typeof val === "string") {
+            try { parsed = JSON.parse(val); } catch { parsed = val; }
+          }
           const finalKey = normalizeKey(key);
 
-          // 1) localStorage'a yaz
-          localStorage.setItem(finalKey, strVal);
+          // 1) localStorage'a yaz (anlik)
+          localStorage.setItem(finalKey, JSON.stringify(parsed));
 
-          // 2) Firestore'a da yaz (bozmamasi icin ayni formatta)
+          // 2) Firestore'a da yaz (paralel)
           if (uid && db) {
-            const firestoreKey = finalKey.replace("atolye_", "");
-            try {
-              await setDoc(doc(db, "users", uid, "data", firestoreKey), {
+            const fsKey = finalKey.replace("atolye_", "");
+            firestorePromises.push(
+              setDoc(doc(db, "users", uid, "data", fsKey), {
                 value: parsed,
                 updatedAt: Date.now(),
                 version: Date.now(),
-              });
-            } catch { /* Firestore yazim hatasi sessizce gecilir, localStorage yeterli */ }
+              }).catch(() => {}) // tek key hatasi digerlerini durdurmasin
+            );
           }
           count++;
         }
 
         setImportInfo(null);
-        setToast(`${count} veri bloku ice aktarildi (localStorage + Firestore)! Sayfa yenileniyor...`);
-        setTimeout(() => window.location.reload(), 2500);
-      } catch {
+        setToast(`${count} veri bloku localStorage'a yazildi. Firestore senkronize ediliyor...`);
+
+        // Tum Firestore yazmalari bitene kadar bekle, SONRA reload
+        if (firestorePromises.length > 0) {
+          await Promise.all(firestorePromises);
+        }
+
+        setToast(`${count} veri bloku ice aktarildi! Sayfa yenileniyor...`);
+        setTimeout(() => window.location.reload(), 1000);
+      } catch (err) {
+        console.error("Import hatasi:", err);
         setToast("Gecersiz JSON dosyasi! Lutfen gecerli bir yedek dosyasi secin.");
         setTimeout(() => setToast(null), 4000);
       }
     };
     reader.readAsText(file);
     setImportInfo({ name: file.name, size: (file.size / 1024).toFixed(1) });
-    // input'u sıfırla ki aynı dosya tekrar seçilebilsin
     e.target.value = "";
   };
   // ------------------------------------------
