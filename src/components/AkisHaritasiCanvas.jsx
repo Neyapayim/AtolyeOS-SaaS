@@ -329,6 +329,118 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
     }]);
   }, [nodes.length, setNodes]);
 
+  // ── Otomatik Akis Olustur ──
+  const otomatikAkisOlustur = useCallback(() => {
+    if (!urun?.bom?.length) return;
+
+    const newNodes = [];
+    const newEdges = [];
+    const nodeIdMap = {}; // kalemId -> nodeId
+    const COL_X = { hm: 80, fason: 350, iscilik: 350, ym: 620, urun: 900 };
+    const ROW_H = 90;
+    const counters = { hm: 0, fason: 0, iscilik: 0, ym: 0 };
+
+    // Helper: node olustur
+    const makeNode = (bomItem, col, row) => {
+      const id = nid();
+      nodeIdMap[bomItem.kalemId] = id;
+      newNodes.push({ id, type: 'bomNode', position: { x: col, y: 60 + row * ROW_H }, data: bomItem });
+      return id;
+    };
+
+    // 1) Urunun dogrudan BOM kalemleri
+    const urunBom = urun.bom || [];
+
+    // Oncelik: YM'leri ve onlarin ic BOM'larini isle
+    urunBom.forEach(b => {
+      if (b.tip !== 'yarimamul') return;
+      const kalem = allKalemler.find(x => x.id === b.kalemId);
+      if (!kalem) return;
+      const meta = TIP.yarimamul;
+
+      // YM node
+      const ymNodeId = makeNode({
+        bomId: b.id, kalemId: b.kalemId, bomTip: 'yarimamul',
+        label: kalem.ad || '?', ikon: meta.ikon, renk: meta.renk,
+        miktar: b.miktar, birim: b.birim,
+      }, COL_X.ym, counters.ym++);
+
+      // YM'nin ic BOM'unu ac
+      const ym = yarimamulList.find(y => y.id === b.kalemId);
+      if (ym?.bom) {
+        ym.bom.forEach(ib => {
+          const ik = allKalemler.find(x => x.id === ib.kalemId);
+          if (!ik) return;
+          // Zaten node varsa tekrar olusturma
+          if (nodeIdMap[ib.kalemId]) {
+            newEdges.push({ id: `e_${nodeIdMap[ib.kalemId]}_${ymNodeId}`, source: nodeIdMap[ib.kalemId], target: ymNodeId });
+            return;
+          }
+          let bomTip = ib.tip;
+          if (ib.tip === 'hizmet') bomTip = ik.tip === 'fason' ? 'hizmet_fason' : 'hizmet_ic';
+          const m = TIP[bomTip] || TIP.hammadde;
+          const isHm = bomTip === 'hammadde';
+          const isFason = bomTip === 'hizmet_fason';
+          const col = isHm ? COL_X.hm : (isFason ? COL_X.fason : COL_X.iscilik);
+          const counter = isHm ? 'hm' : (isFason ? 'fason' : 'iscilik');
+          const srcId = makeNode({
+            bomId: ib.id, kalemId: ib.kalemId, bomTip,
+            label: ik.ad || '?', ikon: m.ikon, renk: m.renk,
+            miktar: ib.miktar, birim: ib.birim,
+          }, col, counters[counter]++);
+          newEdges.push({ id: `e_${srcId}_${ymNodeId}`, source: srcId, target: ymNodeId });
+        });
+      }
+    });
+
+    // 2) Urunun dogrudan HM/Iscilik/Fason kalemleri
+    urunBom.forEach(b => {
+      if (b.tip === 'yarimamul') return; // zaten islendi
+      const kalem = allKalemler.find(x => x.id === b.kalemId);
+      if (!kalem) return;
+      if (nodeIdMap[b.kalemId]) return; // zaten var
+      let bomTip = b.tip;
+      if (b.tip === 'hizmet') bomTip = kalem.tip === 'fason' ? 'hizmet_fason' : 'hizmet_ic';
+      const m = TIP[bomTip] || TIP.hammadde;
+      const isHm = bomTip === 'hammadde';
+      const isFason = bomTip === 'hizmet_fason';
+      const col = isHm ? COL_X.hm : (isFason ? COL_X.fason : COL_X.iscilik);
+      const counter = isHm ? 'hm' : (isFason ? 'fason' : 'iscilik');
+      makeNode({
+        bomId: b.id, kalemId: b.kalemId, bomTip,
+        label: kalem.ad || '?', ikon: m.ikon, renk: m.renk,
+        miktar: b.miktar, birim: b.birim,
+      }, col, counters[counter]++);
+    });
+
+    // 3) Nihai urun node
+    const urunNodeId = nid();
+    const maxRows = Math.max(counters.hm, counters.fason, counters.iscilik, counters.ym, 1);
+    newNodes.push({
+      id: urunNodeId, type: 'bomNode',
+      position: { x: COL_X.urun, y: 60 + Math.floor((maxRows - 1) / 2) * ROW_H },
+      data: { bomId: `urun_${urun.id}`, kalemId: urun.id, bomTip: 'urun', label: urun.ad || 'Urun', ikon: TIP.urun.ikon, renk: TIP.urun.renk },
+    });
+
+    // 4) YM'ler → Urun edge
+    urunBom.forEach(b => {
+      if (b.tip === 'yarimamul' && nodeIdMap[b.kalemId]) {
+        newEdges.push({ id: `e_${nodeIdMap[b.kalemId]}_${urunNodeId}`, source: nodeIdMap[b.kalemId], target: urunNodeId });
+      }
+    });
+
+    // 5) Dogrudan urun BOM'undaki HM/Hizmet → Urun edge
+    urunBom.forEach(b => {
+      if (b.tip !== 'yarimamul' && nodeIdMap[b.kalemId]) {
+        newEdges.push({ id: `e_${nodeIdMap[b.kalemId]}_${urunNodeId}`, source: nodeIdMap[b.kalemId], target: urunNodeId });
+      }
+    });
+
+    setNodes(newNodes);
+    setEdges(newEdges);
+    setIsEditing(true);
+  }, [urun, allKalemler, yarimamulList, setNodes, setEdges]);
+
   // ── YM/Urun sub-items ──
   const subItemsMap = useMemo(() => {
     const map = {};
@@ -505,6 +617,21 @@ function InnerFlow({ urun, setUrunler, bomPalette, yarimamulList, allKalemler })
               onMouseLeave={e => { e.currentTarget.style.background = `color-mix(in srgb, ${C.cyan} 10%, transparent)`; }}
             >
               {'\u270F\uFE0F'} Akisi Duzenle
+            </button>
+          )}
+
+          {/* Otomatik Akis */}
+          {!isEditing && nodes.length === 0 && urun?.bom?.length > 0 && (
+            <button onClick={otomatikAkisOlustur} style={{
+              padding: '8px 18px', borderRadius: 10, cursor: 'pointer', fontFamily: F, fontSize: 11, fontWeight: 700,
+              background: `color-mix(in srgb, ${C.lav} 10%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${C.lav} 25%, transparent)`,
+              color: C.lav, display: 'flex', alignItems: 'center', gap: 6, transition: 'all .15s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = `color-mix(in srgb, ${C.lav} 20%, transparent)`; }}
+              onMouseLeave={e => { e.currentTarget.style.background = `color-mix(in srgb, ${C.lav} 10%, transparent)`; }}
+            >
+              {'\u2728'} Otomatik Akis Olustur
             </button>
           )}
         </div>
