@@ -116,10 +116,10 @@ export default function AyarlarPage({ genelAyar, setGenelAyar }) {
             const fsKey = finalKey.replace("atolye_", "");
             firestorePromises.push(
               setDoc(doc(db, "users", uid, "data", fsKey), {
-                value: parsed,
-                updatedAt: Date.now(),
+                payload: parsed,
+                updatedAt: new Date().toISOString(),
                 version: Date.now(),
-              }).catch(() => {}) // tek key hatasi digerlerini durdurmasin
+              }).catch(() => {})
             );
           }
           count++;
@@ -318,7 +318,7 @@ export default function AyarlarPage({ genelAyar, setGenelAyar }) {
                     localStorage.setItem(finalKey, JSON.stringify(val));
                     if (uid && db) {
                       const fsKey = finalKey.replace("atolye_", "");
-                      try { await setDoc(doc(db, "users", uid, "data", fsKey), { value: val, updatedAt: Date.now(), version: Date.now() }); } catch {}
+                      try { await setDoc(doc(db, "users", uid, "data", fsKey), { payload: val, updatedAt: new Date().toISOString(), version: Date.now() }); } catch {}
                     }
                   }
                   setToast("Veriler basariyla enjekte edildi (localStorage + Firestore)! Yenileniyor...");
