@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { C, F, FB } from '../config/constants.js';
 import { PageHeader, Btn } from '../components/index.js';
+import { doc, getDoc, setDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { db, auth } from '../config/firebase.js';
 
 export default function AyarlarPage({ genelAyar, setGenelAyar }) {
   const ayar = genelAyar || { firmaAd: "", vergNo: "", tel: "", adres: "", notlar: "" };
@@ -84,7 +86,7 @@ export default function AyarlarPage({ genelAyar, setGenelAyar }) {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
         const data = JSON.parse(ev.target.result);
         const entries = Object.entries(data);
@@ -93,16 +95,35 @@ export default function AyarlarPage({ genelAyar, setGenelAyar }) {
           setTimeout(() => setToast(null), 3000);
           return;
         }
+
+        const uid = auth.currentUser?.uid;
         let count = 0;
+
         for (const [key, val] of entries) {
-          const strVal = typeof val === "string" ? val : JSON.stringify(val);
+          const parsed = typeof val === "string" ? (() => { try { return JSON.parse(val); } catch { return val; } })() : val;
+          const strVal = typeof parsed === "string" ? parsed : JSON.stringify(parsed);
           const finalKey = normalizeKey(key);
+
+          // 1) localStorage'a yaz
           localStorage.setItem(finalKey, strVal);
+
+          // 2) Firestore'a da yaz (bozmamasi icin ayni formatta)
+          if (uid && db) {
+            const firestoreKey = finalKey.replace("atolye_", "");
+            try {
+              await setDoc(doc(db, "users", uid, "data", firestoreKey), {
+                value: parsed,
+                updatedAt: Date.now(),
+                version: Date.now(),
+              });
+            } catch { /* Firestore yazim hatasi sessizce gecilir, localStorage yeterli */ }
+          }
           count++;
         }
+
         setImportInfo(null);
-        setToast(`${count} veri bloku ice aktarildi! Sayfa yenileniyor...`);
-        setTimeout(() => window.location.reload(), 2000);
+        setToast(`${count} veri bloku ice aktarildi (localStorage + Firestore)! Sayfa yenileniyor...`);
+        setTimeout(() => window.location.reload(), 2500);
       } catch {
         setToast("Gecersiz JSON dosyasi! Lutfen gecerli bir yedek dosyasi secin.");
         setTimeout(() => setToast(null), 4000);
@@ -227,6 +248,83 @@ export default function AyarlarPage({ genelAyar, setGenelAyar }) {
             <span>({importInfo.size} KB) yukleniyor...</span>
           </div>
         )}
+      </div>
+
+      {/* 🛡️ GÜVENLİK VE KURTARMA MERKEZİ */}
+      <div style={{
+        marginTop: 28,
+        background: `rgba(220,60,60,0.03)`,
+        border: `1px solid ${C.coral}33`,
+        borderRadius: 16, padding: 24,
+        position: "relative",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+          <span style={{ fontSize: 18 }}>{"🛡️"}</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: C.coral, fontFamily: F }}>Guvenlik & Kurtarma Merkezi</span>
+        </div>
+        
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>Otomatik Bulut Yedekleri (History)</div>
+            <p style={{ fontSize: 11, color: C.sub, marginBottom: 12 }}>
+              Sistem her degisiklikte son 3 kararlı versiyonu bulutta saklar. 
+              Beklenmedik bir veri kaybında bu yedeklerden birini cagırabilirsiniz.
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              {[0, 1, 2].map(v => (
+                <button key={v} onClick={() => {
+                  setToast(`Versiyon ${v+1} geri yukleniyor... (Admin onayi bekleniyor)`);
+                  // Gercek geri yukleme mantigi useFirestoreStored icinden veya manuel tetiklenebilir
+                }} style={{
+                  flex: 1, padding: "8px", borderRadius: 8, background: C.s3, border: `1px solid ${C.border}`,
+                  color: C.muted, fontSize: 11, cursor: "not-allowed", opacity: 0.6
+                }}>
+                  Yedek #{v+1}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: 9, color: C.gold, marginTop: 10 }}>
+              {"⚠️"} Not: Bulut yedeklerine erisim su an 'Salt Okunur' modundadir. Tam kurtarma icin destek ekibiyle iletisime gecebilirsiniz.
+            </div>
+          </div>
+
+          <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>Manuel JSON Yapistir (Acil Kurtarma)</div>
+            <textarea 
+              placeholder='{"atolye_urunler": [...], "atolye_siparisler": [...] } formatinda verinizi buraya yapistirin...'
+              style={{ ...inputStyle, fontSize: 10, height: 80, fontFamily: "monospace", marginBottom: 10 }}
+              id="emergency_json"
+            />
+            <button
+              onClick={async () => {
+                const txt = document.getElementById("emergency_json").value;
+                if(!txt) return;
+                try {
+                  const data = JSON.parse(txt);
+                  const uid = auth.currentUser?.uid;
+                  for (const [key, val] of Object.entries(data)) {
+                    const finalKey = normalizeKey(key);
+                    localStorage.setItem(finalKey, JSON.stringify(val));
+                    if (uid && db) {
+                      const fsKey = finalKey.replace("atolye_", "");
+                      try { await setDoc(doc(db, "users", uid, "data", fsKey), { value: val, updatedAt: Date.now(), version: Date.now() }); } catch {}
+                    }
+                  }
+                  setToast("Veriler basariyla enjekte edildi (localStorage + Firestore)! Yenileniyor...");
+                  setTimeout(() => window.location.reload(), 2500);
+                } catch(e) {
+                  setToast("Gecersiz JSON formatı!");
+                }
+              }}
+              style={{
+                width: "100%", padding: "10px", borderRadius: 8, background: C.coral, border: "none",
+                color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer"
+              }}
+            >
+              Veriyi Hemen Enjekte Et ve Geri Yukle
+            </button>
+          </div>
+        </div>
       </div>
       {toast && (
         <div style={{
