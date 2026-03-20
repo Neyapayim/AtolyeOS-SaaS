@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { C, F, FB, uid } from './config/constants.js';
 import { useTheme, THEME_OPTIONS } from './hooks/useTheme.js';
+import { useAuthContext } from './auth/AuthProvider.jsx';
 import {
   INIT_SIPARISLER, INIT_HAM_MADDE, INIT_YARI_MAMUL, INIT_HIZMET,
   INIT_URUNLER, INIT_ISTASYONLAR, INIT_CALISANLAR, INIT_FASON,
@@ -48,6 +49,7 @@ const NAV_ITEMS = [
 
 export default function AppMain() {
   const { themeId, switchTheme } = useTheme();
+  const { logout } = useAuthContext();
   const [tab, setTab] = useState("dashboard");
   const [mounted, setMounted] = useState(false);
   const [time, setTime] = useState(new Date());
@@ -363,6 +365,24 @@ export default function AppMain() {
             </div>
           ))}
         </nav>
+
+        {/* Cikis Yap */}
+        <div style={{
+          padding: "8px 12px", borderTop: `1px solid rgba(255,255,255,0.06)`, flexShrink: 0,
+        }}>
+          <button onClick={() => logout?.()} style={{
+            width: "100%", padding: "8px 0", borderRadius: 8, cursor: "pointer",
+            background: "rgba(220,60,60,.08)", border: "1px solid rgba(220,60,60,.18)",
+            color: "#e57373", fontSize: 12, fontWeight: 600, fontFamily: FB,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            transition: "all .15s",
+          }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(220,60,60,.15)"; e.currentTarget.style.borderColor = "rgba(220,60,60,.35)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "rgba(220,60,60,.08)"; e.currentTarget.style.borderColor = "rgba(220,60,60,.18)"; }}
+          >
+            {"\uD83D\uDEAA"} Cikis Yap
+          </button>
+        </div>
 
         {/* Tema Secici */}
         <div style={{
