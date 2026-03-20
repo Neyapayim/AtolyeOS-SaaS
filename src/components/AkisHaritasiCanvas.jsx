@@ -270,110 +270,82 @@ function SwimlaneBg({ isDark }) {
    Graph analiz: BOM validation engine
    ═══════════════════════════════════════════ */
 function validateGraph(nodes, edges, allKalemler, yarimamulList, urun) {
-  // Her YM/Urun node'u icin, ona edge ile (dogrudan veya zincir yoluyla) bagli olan
-  // kaynak node'larin kalemId'lerini topla, BOM ile karsilastir
-  const adj = {}; // target -> [source]
-  edges.forEach(e => {
-    if (!adj[e.target]) adj[e.target] = [];
-    adj[e.target].push(e.source);
-  });
+  // Her edge icin: target bir YM/Urun ise, source'un kalemId'si
+  // target'in BOM'unda mi? Sadece DOGRUDAN baglanti kontrol edilir.
+  // Zincirin gerisine bakilmaz — her ok kendi hedefine gore degerlendirilir.
 
   const nodeMap = {};
   nodes.forEach(n => { nodeMap[n.id] = n; });
 
-  // BFS ile bir node'a bagli tum kaynak kalemId'leri topla
-  function collectSources(targetId) {
-    const visited = new Set();
-    const queue = [targetId];
-    const kalemIds = new Set();
-    while (queue.length) {
-      const cur = queue.shift();
-      if (visited.has(cur)) continue;
-      visited.add(cur);
-      (adj[cur] || []).forEach(srcId => {
-        const srcNode = nodeMap[srcId];
-        if (srcNode?.data?.kalemId) kalemIds.add(srcNode.data.kalemId);
-        queue.push(srcId);
-      });
+  // target nodeId -> BOM kalemId seti (cache)
+  const bomCache = {};
+  const getBomKalemIds = (n) => {
+    if (bomCache[n.id]) return bomCache[n.id];
+    const bt = n.data?.bomTip;
+    let bom = [];
+    if (bt === 'urun') bom = urun?.bom || [];
+    else if (bt === 'yarimamul') {
+      const ym = yarimamulList.find(y => y.id === n.data.kalemId);
+      bom = ym?.bom || [];
     }
-    return kalemIds;
-  }
+    bomCache[n.id] = new Set(bom.map(b => b.kalemId));
+    return bomCache[n.id];
+  };
 
-  // Sonuc: nodeId -> { status, matchedKalemIds }
-  const result = {};
-  // edgeId -> status
-  const edgeResult = {};
+  const nodeResults = {};  // nodeId -> { status, matchedKalemIds }
+  const edgeResults = {};  // edgeId -> 'ok' | 'fail'
 
+  // Her YM/Urun node'u icin dogrudan bagli kaynaklari topla
   nodes.forEach(n => {
     const bt = n.data?.bomTip;
     if (bt !== 'yarimamul' && bt !== 'urun') return;
 
-    // Bu node'un BOM'unu bul
-    let bom = [];
-    if (bt === 'urun') {
-      bom = urun?.bom || [];
-    } else {
-      const ym = yarimamulList.find(y => y.id === n.data.kalemId);
-      bom = ym?.bom || [];
-    }
-    if (!bom.length) return;
+    const bomKalemIds = getBomKalemIds(n);
+    if (bomKalemIds.size === 0) return;
 
-    const bomKalemIds = new Set(bom.map(b => b.kalemId));
-    const connectedKalemIds = collectSources(n.id);
-
-    if (connectedKalemIds.size === 0) return;
+    // Bu node'a DOGRUDAN gelen edge'lerin source'larini bul
+    const directEdges = edges.filter(e => e.target === n.id);
+    if (directEdges.length === 0) return;
 
     const matchedIds = new Set();
-    let anyMatch = false;
-    let anyWrong = false;
-    connectedKalemIds.forEach(kid => {
-      if (bomKalemIds.has(kid)) { matchedIds.add(kid); anyMatch = true; }
-      else anyWrong = true;
-    });
+    let allDirectOk = true;
 
-    result[n.id] = {
-      status: anyWrong ? 'fail' : 'ok',
-      matchedKalemIds: matchedIds,
-    };
+    directEdges.forEach(e => {
+      const src = nodeMap[e.source];
+      const srcKalem = src?.data?.kalemId;
+      const isNakliye = src?.data?.bomTip === 'nakliye';
 
-    // Edge'leri isaretle: target'a gelen tum edge'ler
-    // + zincirdeki ara edge'ler
-    const visitedForEdges = new Set();
-    const q2 = [n.id];
-    while (q2.length) {
-      const cur = q2.shift();
-      if (visitedForEdges.has(cur)) continue;
-      visitedForEdges.add(cur);
-      (adj[cur] || []).forEach(srcId => {
-        const srcNode = nodeMap[srcId];
-        const srcKalem = srcNode?.data?.kalemId;
-        const edgeId = edges.find(e => e.source === srcId && e.target === cur)?.id;
-        if (edgeId) {
-          if (srcKalem && !bomKalemIds.has(srcKalem) && srcNode?.data?.bomTip !== 'nakliye') {
-            edgeResult[edgeId] = 'fail';
-          } else if (anyMatch && !anyWrong) {
-            edgeResult[edgeId] = 'ok';
-          } else if (srcKalem && bomKalemIds.has(srcKalem)) {
-            edgeResult[edgeId] = 'ok';
-          }
+      if (isNakliye) {
+        // Nakliye node'lari her zaman ok — lojistik kopruleri
+        edgeResults[e.id] = 'ok';
+      } else if (srcKalem && bomKalemIds.has(srcKalem)) {
+        // BOM'da var → yesil
+        edgeResults[e.id] = 'ok';
+        matchedIds.add(srcKalem);
+        // Kaynak node'u da yesil isaretle
+        if (!nodeResults[src.id]) {
+          nodeResults[src.id] = { status: 'ok', matchedKalemIds: new Set() };
+        } else {
+          nodeResults[src.id].status = 'ok';
         }
-        q2.push(srcId);
-      });
-    }
-
-    // Kaynak node'lari da isaretle
-    connectedKalemIds.forEach(kid => {
-      const srcNode = nodes.find(nd => nd.data?.kalemId === kid);
-      if (srcNode) {
-        result[srcNode.id] = {
-          status: bomKalemIds.has(kid) ? 'ok' : 'fail',
-          matchedKalemIds: new Set(),
-        };
+      } else if (srcKalem) {
+        // BOM'da yok → kirmizi
+        edgeResults[e.id] = 'fail';
+        allDirectOk = false;
+        if (!nodeResults[src.id] || nodeResults[src.id].status !== 'ok') {
+          nodeResults[src.id] = { status: 'fail', matchedKalemIds: new Set() };
+        }
       }
     });
+
+    // Hedef node durumu: en az 1 dogrudan baglanti varsa ve hepsi ok ise yesil
+    nodeResults[n.id] = {
+      status: allDirectOk ? 'ok' : 'fail',
+      matchedKalemIds: matchedIds,
+    };
   });
 
-  return { nodeResults: result, edgeResults: edgeResult };
+  return { nodeResults, edgeResults };
 }
 
 /* ═══════════════════════════════════════════
