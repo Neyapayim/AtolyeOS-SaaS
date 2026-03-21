@@ -398,137 +398,150 @@ function InnerFlow({ urun, bomPalette, yarimamulList, allKalemler }) {
   }, [setNodes]);
 
   // ── Otomatik Akis Olustur ──
-  // 5 katmanli layout: HM → Iscilik/Fason(YM) → YM → Iscilik/Fason(Urun) → Urun
-  // Hammaddeler iscilik/fasondan SUZULEREK yari mamule donusur
+  // Rekursif derinlik algoritmasi: YM icinde YM icinde YM destekler
+  // Her derinlik seviyesi ayri kolon, iscilikler YM'nin hemen solunda
   const otomatikAkisOlustur = useCallback(() => {
     if (!urun?.bom?.length) return;
 
-    const N = []; // nodes
-    const E = []; // edges
-    const idOf = {}; // kalemId -> nodeId (tekrar onleme)
-    const edgeSet = new Set(); // tekrar edge onleme
-    const ROW = 80;
-    // 5 katman x pozisyonlari
-    const X = { hm: 60, ymSvc: 280, ym: 520, urunSvc: 740, urun: 960 };
-    const rows = { hm: 0, ymSvc: 0, ym: 0, urunSvc: 0 };
+    const N = [];
+    const E = [];
+    const idOf = {};
+    const edgeSet = new Set();
+    const COL_W = 260;
+    const ROW_H = 90;
+    const colRows = {}; // col index -> satir sayaci
 
-    // Helper: node olustur (tekrar varsa mevcut id dondur)
-    const mk = (kalemId, bomId, bomTip, label, ikon, renk, miktar, birim, col, rowKey) => {
+    const addNode = (kalemId, bomId, bomTip, label, ikon, renk, miktar, birim, col) => {
       if (idOf[kalemId]) return idOf[kalemId];
       const id = nid();
       idOf[kalemId] = id;
-      N.push({ id, type: 'bomNode', position: { x: col, y: 50 + rows[rowKey] * ROW }, data: { bomId, kalemId, bomTip, label, ikon, renk, miktar, birim } });
-      rows[rowKey]++;
+      if (!colRows[col]) colRows[col] = 0;
+      N.push({ id, type: 'bomNode', position: { x: col * COL_W, y: 40 + colRows[col] * ROW_H }, data: { bomId, kalemId, bomTip, label, ikon, renk, miktar, birim } });
+      colRows[col]++;
       return id;
     };
-    const edge = (src, tgt) => {
-      const key = `${src}_${tgt}`;
-      if (edgeSet.has(key)) return;
-      edgeSet.add(key);
-      E.push({ id: `e_${key}`, source: src, target: tgt });
+    const edge = (s, t) => { const k = `${s}_${t}`; if (edgeSet.has(k)) return; edgeSet.add(k); E.push({ id: `e_${k}`, source: s, target: t }); };
+    const tipOf = (b, k) => b.tip === 'hizmet' ? (k.tip === 'fason' ? 'hizmet_fason' : 'hizmet_ic') : b.tip;
+
+    // ── ADIM 1: Her YM'nin derinligini hesapla (rekursif) ──
+    const depthCache = {};
+    const getDepth = (ymId) => {
+      if (depthCache[ymId] !== undefined) return depthCache[ymId];
+      const ym = yarimamulList.find(y => y.id === ymId);
+      if (!ym?.bom) { depthCache[ymId] = 0; return 0; }
+      let maxChild = 0;
+      ym.bom.forEach(b => {
+        if (b.tip === 'yarimamul') maxChild = Math.max(maxChild, getDepth(b.kalemId) + 1);
+      });
+      depthCache[ymId] = maxChild;
+      return maxChild;
     };
-    const resolveTip = (b, k) => {
-      if (b.tip === 'hizmet') return k.tip === 'fason' ? 'hizmet_fason' : 'hizmet_ic';
-      return b.tip;
-    };
 
-    const urunBom = urun.bom || [];
+    // Urunun YM'lerinin max derinligini bul
+    let maxDepth = 0;
+    (urun.bom || []).forEach(b => {
+      if (b.tip === 'yarimamul') maxDepth = Math.max(maxDepth, getDepth(b.kalemId) + 1);
+    });
 
-    // ══════ ADIM 1: YM'leri isle ══════
-    urunBom.forEach(b => {
-      if (b.tip !== 'yarimamul') return;
-      const kalem = allKalemler.find(x => x.id === b.kalemId);
-      if (!kalem) return;
+    // Kolon hesabi: HM=0, sonra her derinlik icin (iscilik, YM) cifti, son iscilik, urun
+    // Toplam kolon = 1(HM) + maxDepth*2(iscilik+YM cifti) + varsa urun iscilik + 1(urun)
+    const HM_COL = 0;
+    const ymCol = (depth) => 1 + (maxDepth - depth) * 2;        // YM kolonlari (derin=sol, yuzey=sag)
+    const svcCol = (depth) => 1 + (maxDepth - depth) * 2 - 1;   // Iscilik: YM'nin hemen solunda
+    const URUN_SVC_COL = 1 + maxDepth * 2;
+    const URUN_COL = 1 + maxDepth * 2 + 1;
 
-      // YM node (Col 3)
-      const ymId = mk(b.kalemId, b.id, 'yarimamul', kalem.ad || '?', TIP.yarimamul.ikon, TIP.yarimamul.renk, b.miktar, b.birim, X.ym, 'ym');
+    // ── ADIM 2: Rekursif YM isle ──
+    const processYm = (ymKalemId, bomEntry, parentDepth) => {
+      const kalem = allKalemler.find(x => x.id === ymKalemId);
+      if (!kalem) return null;
+      const depth = getDepth(ymKalemId);
+      const col = ymCol(parentDepth);
 
-      // YM'nin ic BOM'unu ac
-      const ym = yarimamulList.find(y => y.id === b.kalemId);
-      if (!ym?.bom) return;
+      const ymNodeId = addNode(ymKalemId, bomEntry.id, 'yarimamul', kalem.ad || '?', TIP.yarimamul.ikon, TIP.yarimamul.renk, bomEntry.miktar, bomEntry.birim, col);
 
-      // Ic BOM'u kategorize et
-      const icHm = [];   // hammaddeler
-      const icSvc = [];   // iscilik/fason
+      const ym = yarimamulList.find(y => y.id === ymKalemId);
+      if (!ym?.bom) return ymNodeId;
+
+      const hmIds = [];
+      const svcIds = [];
+      const childYmIds = [];
+
       ym.bom.forEach(ib => {
         const ik = allKalemler.find(x => x.id === ib.kalemId);
         if (!ik) return;
-        const bt = resolveTip(ib, ik);
-        if (bt === 'hammadde') icHm.push({ ...ib, _k: ik, _bt: bt });
-        else icSvc.push({ ...ib, _k: ik, _bt: bt });
+        const bt = tipOf(ib, ik);
+
+        if (ib.tip === 'yarimamul') {
+          // Rekursif: ic YM'yi isle
+          const childId = processYm(ib.kalemId, ib, parentDepth + 1);
+          if (childId) childYmIds.push(childId);
+        } else if (bt === 'hammadde') {
+          const m = TIP.hammadde;
+          hmIds.push(addNode(ib.kalemId, ib.id, 'hammadde', ik.ad || '?', m.ikon, m.renk, ib.miktar, ib.birim, HM_COL));
+        } else {
+          const m = TIP[bt] || TIP.hizmet_ic;
+          svcIds.push(addNode(ib.kalemId, ib.id, bt, ik.ad || '?', m.ikon, m.renk, ib.miktar, ib.birim, svcCol(parentDepth)));
+        }
       });
 
-      // Iscilik/Fason node'lari olustur (Col 2: ymSvc)
-      const svcIds = icSvc.map(s => {
-        const m = TIP[s._bt] || TIP.hizmet_ic;
-        return mk(s.kalemId, s.id, s._bt, s._k.ad || '?', m.ikon, m.renk, s.miktar, s.birim, X.ymSvc, 'ymSvc');
-      });
-
-      // HM node'lari olustur (Col 1)
-      const hmIds = icHm.map(h => {
-        const m = TIP.hammadde;
-        return mk(h.kalemId, h.id, 'hammadde', h._k.ad || '?', m.ikon, m.renk, h.miktar, h.birim, X.hm, 'hm');
-      });
-
+      // Edge'ler: HM → Iscilik → YM (suzulme)
       if (svcIds.length > 0) {
-        // HM → Iscilik/Fason → YM (suzulerek gecer)
-        hmIds.forEach(hid => svcIds.forEach(sid => edge(hid, sid)));
-        svcIds.forEach(sid => edge(sid, ymId));
+        hmIds.forEach(h => svcIds.forEach(s => edge(h, s)));
+        svcIds.forEach(s => edge(s, ymNodeId));
       } else {
-        // Iscilik yoksa HM dogrudan YM'ye
-        hmIds.forEach(hid => edge(hid, ymId));
+        hmIds.forEach(h => edge(h, ymNodeId));
       }
-    });
-
-    // ══════ ADIM 2: Urunun dogrudan kalemleri ══════
-    const urunHm = [];
-    const urunSvc = [];
-    const urunYmIds = [];
-
-    urunBom.forEach(b => {
-      if (b.tip === 'yarimamul') {
-        if (idOf[b.kalemId]) urunYmIds.push(idOf[b.kalemId]);
-        return;
+      // Alt YM'ler → bu YM (veya iscilik uzerinden)
+      if (svcIds.length > 0) {
+        childYmIds.forEach(c => svcIds.forEach(s => edge(c, s)));
+      } else {
+        childYmIds.forEach(c => edge(c, ymNodeId));
       }
+
+      return ymNodeId;
+    };
+
+    // ── ADIM 3: Urunun BOM'unu isle ──
+    const topYmIds = [];
+    const urunHmIds = [];
+    const urunSvcIds = [];
+
+    (urun.bom || []).forEach(b => {
       const kalem = allKalemler.find(x => x.id === b.kalemId);
       if (!kalem) return;
-      const bt = resolveTip(b, kalem);
-      if (bt === 'hammadde') urunHm.push({ ...b, _k: kalem, _bt: bt });
-      else urunSvc.push({ ...b, _k: kalem, _bt: bt });
+
+      if (b.tip === 'yarimamul') {
+        const yid = processYm(b.kalemId, b, 0);
+        if (yid) topYmIds.push(yid);
+      } else {
+        const bt = tipOf(b, kalem);
+        if (bt === 'hammadde') {
+          urunHmIds.push(addNode(b.kalemId, b.id, 'hammadde', kalem.ad || '?', TIP.hammadde.ikon, TIP.hammadde.renk, b.miktar, b.birim, HM_COL));
+        } else {
+          const m = TIP[bt] || TIP.hizmet_ic;
+          urunSvcIds.push(addNode(b.kalemId, b.id, bt, kalem.ad || '?', m.ikon, m.renk, b.miktar, b.birim, URUN_SVC_COL));
+        }
+      }
     });
 
-    // Urun seviyesi iscilik/fason (Col 4: urunSvc)
-    const urunSvcIds = urunSvc.map(s => {
-      const m = TIP[s._bt] || TIP.hizmet_ic;
-      return mk(s.kalemId, s.id, s._bt, s._k.ad || '?', m.ikon, m.renk, s.miktar, s.birim, X.urunSvc, 'urunSvc');
-    });
-
-    // Urun seviyesi dogrudan HM (Col 1)
-    const urunHmIds = urunHm.map(h => {
-      const m = TIP.hammadde;
-      return mk(h.kalemId, h.id, 'hammadde', h._k.ad || '?', m.ikon, m.renk, h.miktar, h.birim, X.hm, 'hm');
-    });
-
-    // ══════ ADIM 3: Nihai urun node (Col 5) ══════
-    const maxR = Math.max(rows.hm, rows.ymSvc, rows.ym, rows.urunSvc, 1);
+    // ── ADIM 4: Nihai urun ──
+    const maxR = Math.max(...Object.values(colRows), 1);
     const urunNodeId = nid();
     N.push({
       id: urunNodeId, type: 'bomNode',
-      position: { x: X.urun, y: 50 + Math.floor((maxR - 1) / 2) * ROW },
+      position: { x: URUN_COL * COL_W, y: 40 + Math.floor((maxR - 1) / 2) * ROW_H },
       data: { bomId: `urun_${urun.id}`, kalemId: urun.id, bomTip: 'urun', label: urun.ad || 'Urun', ikon: TIP.urun.ikon, renk: TIP.urun.renk },
     });
 
-    // ══════ ADIM 4: Edge'ler ══════
+    // ── ADIM 5: Son edge'ler ──
     if (urunSvcIds.length > 0) {
-      // YM'ler → urun iscilikler → Urun
-      urunYmIds.forEach(yid => urunSvcIds.forEach(sid => edge(yid, sid)));
-      urunSvcIds.forEach(sid => edge(sid, urunNodeId));
-      // Dogrudan HM → urun iscilikler
-      urunHmIds.forEach(hid => urunSvcIds.forEach(sid => edge(hid, sid)));
+      topYmIds.forEach(y => urunSvcIds.forEach(s => edge(y, s)));
+      urunSvcIds.forEach(s => edge(s, urunNodeId));
+      urunHmIds.forEach(h => urunSvcIds.forEach(s => edge(h, s)));
     } else {
-      // Iscilik yoksa YM + HM dogrudan Urun'e
-      urunYmIds.forEach(yid => edge(yid, urunNodeId));
-      urunHmIds.forEach(hid => edge(hid, urunNodeId));
+      topYmIds.forEach(y => edge(y, urunNodeId));
+      urunHmIds.forEach(h => edge(h, urunNodeId));
     }
 
     setNodes(N);
